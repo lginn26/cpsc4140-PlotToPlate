@@ -33,6 +33,8 @@ foodshare-app/
 ├── garden.html       (Gardens)
 ├── community.html    (Posts)
 └── profile.html      (User profile)
+
+
 Database
 Three tables: User, Garden, Post
 User: id, username, email, bio, location
