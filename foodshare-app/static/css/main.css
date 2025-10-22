@@ -1,0 +1,447 @@
+:root {
+    --primary-green: #1B5E3F;
+    --dark-green: #0F4C2F;
+    --light-bg: #F5F5F5;
+    --white: #FFFFFF;
+    --text-dark: #333333;
+    --text-light: #666666;
+    --accent-green: #2D7A4F;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-dark);
+    background-color: var(--light-bg);
+}
+
+/* Navbar Styles */
+.navbar {
+    background-color: var(--white);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 1rem 0;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--primary-green) !important;
+}
+
+.nav-link {
+    color: var(--text-dark) !important;
+    font-weight: 500;
+    margin: 0 0.5rem;
+    transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+    color: var(--primary-green) !important;
+}
+
+/* Button Styles */
+.btn-success {
+    background-color: var(--primary-green) !important;
+    border-color: var(--primary-green) !important;
+    color: var(--white) !important;
+    font-weight: 600;
+    padding: 0.75rem 2rem;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    background-color: var(--dark-green) !important;
+    border-color: var(--dark-green) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(27, 94, 63, 0.3);
+}
+
+.btn-outline-success {
+    color: var(--primary-green) !important;
+    border-color: var(--primary-green) !important;
+    font-weight: 600;
+    padding: 0.75rem 2rem;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-success:hover {
+    background-color: var(--primary-green) !important;
+    border-color: var(--primary-green) !important;
+    color: var(--white) !important;
+    transform: translateY(-2px);
+}
+
+.btn-light {
+    background-color: var(--white) !important;
+    color: var(--primary-green) !important;
+    font-weight: 600;
+}
+
+.btn-light:hover {
+    background-color: var(--light-bg) !important;
+}
+
+/* Card Styles */
+.card {
+    border: none;
+    border-radius: 12px;
+    background-color: var(--white);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.card-header {
+    background-color: transparent !important;
+    border-bottom: 2px solid var(--light-bg) !important;
+    padding: 1.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.border-success {
+    border-color: var(--primary-green) !important;
+}
+
+/* Heading Styles */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--primary-green);
+    font-weight: 700;
+}
+
+.display-4 {
+    font-weight: 800;
+    color: var(--primary-green);
+}
+
+.display-5 {
+    font-weight: 800;
+    color: var(--primary-green);
+}
+
+/* Section Styles */
+.bg-light {
+    background-color: var(--light-bg) !important;
+}
+
+.bg-dark {
+    background-color: var(--primary-green) !important;
+}
+
+.hero-section {
+    padding: 4rem 0;
+}
+
+/* Icon Styles */
+.icon-large {
+    font-size: 3rem;
+    color: var(--primary-green);
+}
+
+.icon-monochromatic {
+    color: var(--primary-green);
+}
+
+/* Text Styles */
+.text-muted {
+    color: var(--text-light) !important;
+}
+
+.lead {
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+.text-light {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Utility */
+.min-vh-75 {
+    min-height: 75vh;
+}
+
+/* Full Screen Flower Section */
+.full-screen-flower-section {
+    width: 100%;
+    height: 100vh;
+    background: linear-gradient(180deg, rgba(245,245,245,1) 0%, rgba(200,255,100,0.2) 50%, rgba(100,200,50,0.15) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Background leaves */
+.flower-bg-leaf {
+    position: absolute;
+    opacity: 0.1;
+    filter: blur(80px);
+    border-radius: 50%;
+    z-index: 0;
+}
+
+.leaf-bg-1 {
+    width: 500px;
+    height: 500px;
+    background: #9ACD32;
+    top: 5%;
+    left: 5%;
+}
+
+.leaf-bg-2 {
+    width: 600px;
+    height: 600px;
+    background: #ADFF2F;
+    top: -5%;
+    right: 10%;
+}
+
+.leaf-bg-3 {
+    width: 550px;
+    height: 550px;
+    background: #9ACD32;
+    bottom: -10%;
+    left: 15%;
+}
+
+/* Main Hibiscus Wrapper */
+.hibiscus-wrapper {
+    position: relative;
+    width: 400px;
+    height: 500px;
+    z-index: 10;
+}
+
+/* Petals */
+.petal {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.15));
+}
+
+/* Back petals - Light pink, behind */
+.back-petal {
+    width: 180px;
+    height: 220px;
+    z-index: 2;
+    border-radius: 50% 50% 40% 30%;
+}
+
+.bp-1 {
+    background: linear-gradient(135deg, #FFB6D9 0%, #FFD4E5 100%);
+    margin-left: -90px;
+    margin-top: -110px;
+    transform: rotate(-25deg);
+}
+
+.bp-2 {
+    background: linear-gradient(135deg, #FFB6D9 0%, #FFD4E5 100%);
+    margin-left: -90px;
+    margin-top: -110px;
+    transform: rotate(25deg);
+}
+
+/* Front petals - Deep pink, on top */
+.front-petal {
+    width: 200px;
+    height: 240px;
+    z-index: 5;
+    border-radius: 50% 50% 45% 35%;
+}
+
+.fp-1 {
+    background: linear-gradient(135deg, #FF1493 0%, #FF69B4 50%, #FF1493 100%);
+    margin-left: -100px;
+    margin-top: -120px;
+    transform: rotate(-45deg);
+}
+
+.fp-2 {
+    background: linear-gradient(135deg, #FF1493 0%, #FF69B4 50%, #FF1493 100%);
+    margin-left: -100px;
+    margin-top: -120px;
+    transform: rotate(45deg);
+}
+
+/* Stamen - Central yellow structure */
+.stamen-tube {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 35px;
+    height: 140px;
+    background: linear-gradient(to top, #E8A935 0%, #FFD700 40%, #FFED4E 100%);
+    margin-left: -17.5px;
+    margin-top: -70px;
+    border-radius: 50%;
+    z-index: 20;
+    box-shadow: inset -3px 0 8px rgba(0,0,0,0.2);
+}
+
+/* Stamen Head - Yellow oval */
+.stamen-head {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 50px;
+    height: 55px;
+    background: radial-gradient(ellipse at 50% 35%, #FFFF00 0%, #FFD700 50%, #DAA520 100%);
+    margin-left: -25px;
+    margin-top: -145px;
+    border-radius: 50%;
+    z-index: 25;
+    box-shadow: 0 5px 12px rgba(0,0,0,0.2);
+}
+
+/* Stamen Filaments - Red/pink threads radiating from top */
+.filament {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 3px;
+    background: linear-gradient(to top, #E91E63 0%, #FF1493 40%, #FF69B4 100%);
+    margin-left: -1.5px;
+    border-radius: 1.5px;
+    z-index: 26;
+}
+
+.f-1 {
+    height: 70px;
+    margin-top: -185px;
+    transform: rotate(-35deg);
+}
+
+.f-2 {
+    height: 75px;
+    margin-top: -188px;
+    transform: rotate(-20deg);
+}
+
+.f-3 {
+    height: 78px;
+    margin-top: -190px;
+    transform: rotate(-5deg);
+}
+
+.f-4 {
+    height: 80px;
+    margin-top: -192px;
+    transform: rotate(10deg);
+}
+
+.f-5 {
+    height: 78px;
+    margin-top: -190px;
+    transform: rotate(25deg);
+}
+
+.f-6 {
+    height: 75px;
+    margin-top: -188px;
+    transform: rotate(40deg);
+}
+
+.f-7 {
+    height: 72px;
+    margin-top: -186px;
+    transform: rotate(55deg);
+}
+
+.f-8 {
+    height: 68px;
+    margin-top: -184px;
+    transform: rotate(70deg);
+}
+
+/* Garden Card Hover Effect */
+.garden-card {
+    transition: all 0.3s ease;
+}
+
+.garden-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 20px rgba(27, 94, 63, 0.15);
+}
+
+.feature-card {
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(27, 94, 63, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .full-screen-flower-section {
+        height: 85vh;
+    }
+
+    .hibiscus-wrapper {
+        width: 300px;
+        height: 380px;
+    }
+
+    .petal {
+        width: 140px !important;
+        height: 170px !important;
+    }
+
+    .stamen-tube {
+        height: 100px;
+        margin-top: -50px;
+    }
+
+    .stamen-head {
+        width: 40px;
+        height: 45px;
+        margin-left: -20px;
+        margin-top: -110px;
+    }
+}
+
+@media (max-width: 480px) {
+    .full-screen-flower-section {
+        height: 70vh;
+    }
+
+    .hibiscus-wrapper {
+        width: 250px;
+        height: 320px;
+    }
+
+    .petal {
+        width: 110px !important;
+        height: 140px !important;
+    }
+
+    .stamen-tube {
+        height: 80px;
+        width: 28px;
+        margin-left: -14px;
+        margin-top: -40px;
+    }
+
+    .stamen-head {
+        width: 35px;
+        height: 38px;
+        margin-left: -17.5px;
+        margin-top: -90px;
+    }
+}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ user.username }} - FoodShare{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row mb-5">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center">
+                            <i class="fas fa-user-circle profile-icon"></i>
+                        </div>
+                        <div class="col-md-9">
+                            <h1 class="card-title">{{ user.username }}</h1>
+                            <p class="text-muted">
+                                <i class="fas fa-envelope"></i> {{ user.email }}
+                            </p>
+                            <p class="card-text">{{ user.bio }}</p>
+                            <small class="text-muted">
+                                <i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> {{ user.location }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-lg-12">
+            <h3 class="mb-4">
+                <i class="fas fa-list"></i> Posts
+            </h3>
+            {% if posts %}
+                <div class="row g-4">
+                    {% for post in posts %}
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ post.title }}</h5>
+                                <p class="card-text">{{ post.content }}</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> {{ post.timestamp }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No posts yet
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <h3 class="mb-4">
+                <i class="fas fa-leaf"></i> Gardens
+            </h3>
+            {% if gardens %}
+                <div class="row g-4">
+                    {% for garden in gardens %}
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ garden.name }}</h5>
+                                <p class="card-text">{{ garden.description }}</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-sprout"></i> <strong>Plants:</strong> {{ garden.plants }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No gardens yet
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .profile-icon {
+        font-size: 5rem;
+        color: #333;
+    }
+</style>
+{% endblock %}

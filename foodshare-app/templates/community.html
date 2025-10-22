@@ -1,0 +1,99 @@
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <h1 class="mb-4">
+                <i class="fas fa-comments"></i> Community Posts
+            </h1>
+        </div>
+        <div class="col-lg-4">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newPostModal">
+                <i class="fas fa-plus"></i> New Post
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        {% if posts %}
+            {% for post in posts %}
+            <div class="col-lg-8 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ post.title }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            <i class="fas fa-user-circle"></i> By {{ post.author.username }}
+                        </h6>
+                        <p class="card-text">{{ post.content }}</p>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <small class="text-muted">
+                                    <i class="fas fa-tag"></i> <strong>Type:</strong> {{ post.food_type }}
+                                </small>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-muted">
+                                    <i class="fas fa-weight"></i> <strong>Quantity:</strong> {{ post.quantity }}
+                                </small>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-muted">
+                                    <i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> {{ post.location }}
+                                </small>
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            <i class="fas fa-clock"></i> {{ post.timestamp }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-lg-8">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No posts yet. Be the first to share!
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="modal fade" id="newPostModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-pen"></i> Create New Post
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="postForm">
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="content" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Food Type</label>
+                        <input type="text" class="form-control" name="food_type">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quantity</label>
+                        <input type="text" class="form-control" name="quantity">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Location</label>
+                        <input type="text" class="form-control" name="location">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success">Post</button>
+            </div>
+        </div>
+    </div>
+</div>

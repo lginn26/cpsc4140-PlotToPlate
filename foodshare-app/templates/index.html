@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Home - FoodShare{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center min-vh-75">
+                <div class="col-lg-6">
+                    <p class="text-uppercase text-muted" style="font-size: 0.875rem; letter-spacing: 2px; font-weight: 600;">Innovation for Sustainability</p>
+                    <h1 class="display-4 fw-bold mb-4">Reducing Food Waste Through Smart Solutions</h1>
+                    <p class="lead mb-4" style="font-size: 1.1rem;">Join us in revolutionizing how households and communities approach food consumption. Our integrated digital platform combines AI-powered tracking, community sharing, and educational tools to create a sustainable future.</p>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <a href="/community" class="btn btn-success btn-lg">Explore Features</a>
+                        <a href="#" class="btn btn-outline-success btn-lg">Meet Our Team</a>
+                    </div>
+                </div>
+                <div class="col-lg-6 text-center position-relative d-flex justify-content-center">
+                    <!-- Leaf Icon in Circle -->
+                    <div style="width: 300px; height: 300px; background-color: var(--primary-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(27, 94, 63, 0.2);">
+                        <i class="fas fa-leaf" style="font-size: 120px; color: white;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Full Screen Blooming Hibiscus Flower Section -->
+    <section class="full-screen-flower-section">
+        <!-- Green blurred leaves background -->
+        <div class="flower-bg-leaf leaf-bg-1"></div>
+        <div class="flower-bg-leaf leaf-bg-2"></div>
+        <div class="flower-bg-leaf leaf-bg-3"></div>
+
+        <!-- Main Hibiscus Flower Container -->
+        <div class="hibiscus-wrapper">
+            <!-- BACK PETALS - Light pink, behind -->
+            <div class="petal back-petal bp-1"></div>
+            <div class="petal back-petal bp-2"></div>
+
+            <!-- FRONT PETALS - Deep pink, on top -->
+            <div class="petal front-petal fp-1"></div>
+            <div class="petal front-petal fp-2"></div>
+
+            <!-- STAMEN - Central yellow structure -->
+            <div class="stamen-tube"></div>
+            <div class="stamen-head"></div>
+            
+            <!-- STAMEN FILAMENTS - Red/pink threads at top -->
+            <div class="filament f-1"></div>
+            <div class="filament f-2"></div>
+            <div class="filament f-3"></div>
+            <div class="filament f-4"></div>
+            <div class="filament f-5"></div>
+            <div class="filament f-6"></div>
+            <div class="filament f-7"></div>
+            <div class="filament f-8"></div>
+        </div>
+    </section>
+
+    <!-- Featured Community Gardens Section -->
+    <section class="py-5">
+        <div class="container">
+            <h2 class="text-center mb-5 display-5 fw-bold">Featured Community Gardens</h2>
+            <div class="row g-4">
+                {% if gardens %}
+                    {% for garden in gardens[:3] %}
+                    <div class="col-lg-4">
+                        <div class="card h-100 garden-card">
+                            <div class="card-header bg-transparent border-bottom border-success">
+                                <i class="fas fa-seedling icon-large"></i>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">{{ garden.name }}</h5>
+                                <p class="card-text">{{ garden.description }}</p>
+                                <div class="mb-3">
+                                    <small class="text-muted"><strong>Location:</strong> {{ garden.location }}</small><br>
+                                    <small class="text-muted"><strong>Plants:</strong> {{ garden.plants }}</small>
+                                </div>
+                                <a href="/garden" class="btn btn-sm btn-outline-success">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12 text-center">
+                        <p class="lead text-muted mb-3">No gardens yet. Be the first to start one!</p>
+                        <a href="/garden" class="btn btn-success">Create Garden</a>
+                    </div>
+                {% endif %}
+            </div>
+            {% if gardens|length > 3 %}
+            <div class="text-center mt-5">
+                <a href="/garden" class="btn btn-success btn-lg">View All Gardens</a>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="py-5" style="background-color: var(--light-bg);">
+        <div class="container">
+            <h2 class="text-center mb-5 display-5 fw-bold">How It Works</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 feature-card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-apple-alt icon-large"></i>
+                            <h5 class="card-title mt-3">Share Food</h5>
+                            <p class="card-text">Post surplus fruits, vegetables, and meals to keep them out of landfills.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 feature-card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-clover icon-large"></i>
+                            <h5 class="card-title mt-3">Grow Together</h5>
+                            <p class="card-text">Connect with local gardeners and grow food in shared community gardens.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 feature-card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-users icon-large"></i>
+                            <h5 class="card-title mt-3">Build Community</h5>
+                            <p class="card-text">Meet neighbors and create a network of food-conscious individuals.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-5 text-white text-center" style="background-color: var(--primary-green);">
+        <div class="container">
+            <h2 class="display-5 fw-bold mb-4">Ready to Make a Difference?</h2>
+            <p class="lead mb-4">Join thousands of community members committed to reducing food waste.</p>
+            <a href="/community" class="btn btn-light btn-lg" style="color: var(--primary-green); font-weight: 600;">Get Started</a>
+        </div>
+    </section>
+</div>
+{% endblock %}
