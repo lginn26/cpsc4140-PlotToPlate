@@ -18,22 +18,23 @@ Share surplus food with neighbors
 User profiles with garden and post history
 Responsive design
 
-Project Structure
-foodshare-app/
-├── app.py                 (Flask app, routes, models)
-├── requirements.txt       (Python dependencies)
-├── database/
-│   └── foodshare.db      (SQLite database)
-├── static/
-│   ├── css/main.css      (All styles)
-│   └── js/script.js      (Form handlers)
-└── templates/
-├── base.html         (Master template)
-├── index.html        (Home)
-├── garden.html       (Gardens)
-├── community.html    (Posts)
-└── profile.html      (User profile)
-
+Project Structure  
+```
+foodshare-app/  
+├── app.py                 (Flask app, routes, models)  
+├── requirements.txt       (Python dependencies)  
+├── database/  
+│   └── foodshare.db      (SQLite database)  
+├── static/  
+│   ├── css/main.css      (All styles)  
+│   └── js/script.js      (Form handlers)  
+└── templates/  
+├── base.html         (Master template)  
+├── index.html        (Home)  
+├── garden.html       (Gardens)  
+├── community.html    (Posts)  
+└── profile.html      (User profile)  
+```
 
 Database
 Three tables: User, Garden, Post
