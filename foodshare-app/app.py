@@ -70,9 +70,14 @@ class Garden(db.Model):
             'timestamp': str(self.timestamp)
         }
 
-# Create tables
+# Create tables and default user
 with app.app_context():
     db.create_all()
+    # Create default user if doesn't exist
+    if User.query.filter_by(username='demo').first() is None:
+        demo_user = User(username='demo', email='demo@foodshare.com', bio='Demo user', location='Clemson, SC')
+        db.session.add(demo_user)
+        db.session.commit()
 
 # Routes
 @app.route('/')
@@ -85,8 +90,9 @@ def community():
     posts = Post.query.all()
     return render_template('community.html', posts=posts)
 
+@app.route('/profile')
 @app.route('/profile/<int:user_id>')
-def profile(user_id):
+def profile(user_id=1):
     user = User.query.get_or_404(user_id)
     posts = Post.query.filter_by(user_id=user_id).all()
     gardens = Garden.query.filter_by(user_id=user_id).all()
