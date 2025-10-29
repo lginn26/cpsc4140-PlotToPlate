@@ -4,12 +4,11 @@ Quick Start
 Prerequisites: Python 3.8+
 Installation:
 
-cd foodshare-app
-python -m venv venv
-source venv/bin/activate (macOS/Linux) or venv\Scripts\activate (Windows)
-pip install -r requirements.txt
-python app.py
-Open http://localhost:5000
+cd foodshare-app  
+python -m venv venv  
+source venv/bin/activate (macOS/Linux) or venv\Scripts\activate (Windows)  
+pip install -r requirements.txt  
+python app.py  #Start app#  
 
 Features
 
