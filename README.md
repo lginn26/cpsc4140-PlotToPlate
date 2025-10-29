@@ -4,12 +4,11 @@ Quick Start
 Prerequisites: Python 3.8+
 Installation:
 
-cd foodshare-app
-python -m venv venv
-source venv/bin/activate (macOS/Linux) or venv\Scripts\activate (Windows)
-pip install -r requirements.txt
-python app.py
-Open http://localhost:5000
+cd foodshare-app  
+python3 -m venv venv  
+source venv/bin/activate (macOS/Linux) or venv\Scripts\activate (Windows)  
+pip install -r requirements.txt  
+python app.py  #Start app#  
 
 Features
 
@@ -18,22 +17,23 @@ Share surplus food with neighbors
 User profiles with garden and post history
 Responsive design
 
-Project Structure
-foodshare-app/
-├── app.py                 (Flask app, routes, models)
-├── requirements.txt       (Python dependencies)
-├── database/
-│   └── foodshare.db      (SQLite database)
-├── static/
-│   ├── css/main.css      (All styles)
-│   └── js/script.js      (Form handlers)
-└── templates/
-├── base.html         (Master template)
-├── index.html        (Home)
-├── garden.html       (Gardens)
-├── community.html    (Posts)
-└── profile.html      (User profile)
-
+Project Structure  
+```
+foodshare-app/  
+├── app.py                 (Flask app, routes, models)  
+├── requirements.txt       (Python dependencies)  
+├── database/  
+│   └── foodshare.db      (SQLite database)  
+├── static/  
+│   ├── css/main.css      (All styles)  
+│   └── js/script.js      (Form handlers)  
+└── templates/  
+├── base.html         (Master template)  
+├── index.html        (Home)  
+├── garden.html       (Gardens)  
+├── community.html    (Posts)  
+└── profile.html      (User profile)  
+```
 
 Database
 Three tables: User, Garden, Post
