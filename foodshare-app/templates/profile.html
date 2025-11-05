@@ -1,94 +1,164 @@
 {% extends "base.html" %}
-{% block title %}{{ user.username }} - FoodShare{% endblock %}
+{% block title %}{{ user.username }}'s Profile | FoodShare{% endblock %}
+
 {% block content %}
-<div class="container">
-    <div class="row mb-5">
-        <div class="col-lg-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3 text-center">
-                            <i class="fas fa-user-circle profile-icon"></i>
-                        </div>
-                        <div class="col-md-9">
-                            <h1 class="card-title">{{ user.username }}</h1>
-                            <p class="text-muted">
-                                <i class="fas fa-envelope"></i> {{ user.email }}
-                            </p>
-                            <p class="card-text">{{ user.bio }}</p>
-                            <small class="text-muted">
-                                <i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> {{ user.location }}
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="container py-5">
+  <div class="row justify-content-center mb-5">
+    <div class="col-md-6 text-center">
+      <div class="profile-card p-4">
+        <div class="avatar-placeholder mb-3">
+          {{ user.username[0] | upper }}
         </div>
+        <h3 class="fw-bold">{{ user.username }}</h3>
+        <span class="badge badge-custom mb-2">
+          🌱 {{ user.role or "Garden Volunteer" }}
+        </span>
+        <p class="text-muted mb-3">
+          “{{ user.bio or 'Helping our community grow one plant at a time.' }}”
+        </p>
+
+        <div class="d-flex justify-content-center gap-4 flex-wrap">
+          <span class="text-success"><i class="bi bi-leaf"></i> {{ user.plant_count or 45 }} plants</span>
+          <span class="text-success"><i class="bi bi-geo-alt"></i> {{ user.zone or "Zone 3" }}</span>
+          <span class="text-success"><i class="bi bi-people"></i> {{ user.friends or 18 }} friends</span>
+        </div>
+
+        <!-- 🔥 Gardening Streak Section -->
+        {% if user.streak %}
+        <div class="mt-4 streak-box">
+          🔥 {{ user.streak }}-Day Gardening Streak!
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="profile-card p-4 h-100">
+        <h5 class="section-title mb-3">🌻 Recent Activity</h5>
+        {% if activities %}
+        <ul class="list-unstyled mb-0">
+          {% for act in activities %}
+          <li>{{ act }}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">No recent activity yet.</p>
+        {% endif %}
+      </div>
     </div>
 
-    <div class="row mb-5">
-        <div class="col-lg-12">
-            <h3 class="mb-4">
-                <i class="fas fa-list"></i> Posts
-            </h3>
-            {% if posts %}
-                <div class="row g-4">
-                    {% for post in posts %}
-                    <div class="col-lg-6">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">{{ post.title }}</h5>
-                                <p class="card-text">{{ post.content }}</p>
-                                <small class="text-muted">
-                                    <i class="fas fa-clock"></i> {{ post.timestamp }}
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> No posts yet
-                </div>
-            {% endif %}
-        </div>
+    <div class="col-md-4">
+      <div class="profile-card p-4 h-100">
+        <h5 class="section-title mb-3">🍅 Favorite Plants</h5>
+        {% if favorite_plants %}
+        <ul class="fav-plant-list list-unstyled">
+          {% for plant in favorite_plants %}
+          <li><button class="fav-plant-btn">{{ plant }}</button></li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">No favorite plants added yet.</p>
+        {% endif %}
+      </div>
     </div>
 
-    <div class="row">
-        <div class="col-lg-12">
-            <h3 class="mb-4">
-                <i class="fas fa-leaf"></i> Gardens
-            </h3>
-            {% if gardens %}
-                <div class="row g-4">
-                    {% for garden in gardens %}
-                    <div class="col-lg-6">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">{{ garden.name }}</h5>
-                                <p class="card-text">{{ garden.description }}</p>
-                                <small class="text-muted">
-                                    <i class="fas fa-sprout"></i> <strong>Plants:</strong> {{ garden.plants }}
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> No gardens yet
-                </div>
-            {% endif %}
-        </div>
+    <div class="col-md-4">
+      <div class="profile-card p-4 h-100">
+        <h5 class="section-title mb-3">🤝 Community Contributions</h5>
+        {% if contributions %}
+          {% for c in contributions %}
+            <p>{{ c }}</p>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted">No contributions recorded yet.</p>
+        {% endif %}
+      </div>
     </div>
+  </div>
+
+  <footer class="mt-5 text-center text-muted">
+    🌿 FoodShare © 2025 — Growing Together 🌻
+  </footer>
 </div>
 
+<!-- 🌿 Custom Styles -->
 <style>
-    .profile-icon {
-        font-size: 5rem;
-        color: #333;
-    }
+  body {
+    background-color: #f0f7f1;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  .profile-card {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .profile-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+  }
+
+  .avatar-placeholder {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background-color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: #6c757d;
+    font-weight: 600;
+    margin: 0 auto;
+    border: 5px solid #c7ebca;
+  }
+
+  .badge-custom {
+    background-color: #66bb6a;
+    color: white;
+    border-radius: 10px;
+    padding: 0.5em 1em;
+    font-weight: 500;
+  }
+
+  .section-title {
+    font-weight: 600;
+    color: #2e7d32;
+  }
+
+  .fav-plant-btn {
+    display: inline-block;
+    background-color: #d9f2d9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+    border-radius: 12px;
+    padding: 6px 14px;
+    margin-bottom: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+  }
+
+  .fav-plant-btn:hover {
+    background-color: #43a047;
+    color: white;
+    transform: scale(1.03);
+  }
+
+  .streak-box {
+    background-color: #fff3cd;
+    border-radius: 15px;
+    padding: 1em;
+    text-align: center;
+    font-weight: 600;
+    color: #d35400;
+    font-size: 1.1rem;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  }
 </style>
 {% endblock %}
