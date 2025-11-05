@@ -1,13 +1,18 @@
 from flask import Flask, render_template, request, jsonify
+from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 import os
 
 app = Flask(__name__)
 
-# Configure SQLite database
+# Configure SQLite database and uploads
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database', 'foodshare.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'static', 'uploads')
+
+# Ensure upload folder exists
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db = SQLAlchemy(app)
 
@@ -36,6 +41,8 @@ class Post(db.Model):
     food_type = db.Column(db.String(100))
     quantity = db.Column(db.String(100))
     location = db.Column(db.String(200))
+    image_url = db.Column(db.String(200))            
+    likes = db.Column(db.Integer, default=0)        
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     timestamp = db.Column(db.DateTime, default=db.func.now())
     
@@ -47,6 +54,8 @@ class Post(db.Model):
             'food_type': self.food_type,
             'quantity': self.quantity,
             'location': self.location,
+            'image_url': self.image_url,
+            'likes': self.likes,
             'author': self.author.username,
             'timestamp': str(self.timestamp)
         }
@@ -118,20 +127,45 @@ def api_users():
 @app.route('/api/posts', methods=['GET', 'POST'])
 def api_posts():
     if request.method == 'POST':
-        data = request.json
+        # Using multipart/form-data
+        title = request.form.get('title')
+        content = request.form.get('content')
+        food_type = request.form.get('food_type')
+        quantity = request.form.get('quantity')
+        location = request.form.get('location')
+        user_id = request.form.get('user_id', 1) 
+
+        # Image Handling
+        image = request.files.get('image')
+        image_filename = None
+        if image:
+            filename = secure_filename(image.filename)
+            image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            image_filename = filename
+
         post = Post(
-            title=data['title'],
-            content=data['content'],
-            food_type=data.get('food_type'),
-            quantity=data.get('quantity'),
-            location=data.get('location'),
-            user_id=data['user_id']
+            title=title,
+            content=content,
+            food_type=food_type,
+            quantity=quantity,
+            location=location,
+            image_url=image_filename,
+            user_id=user_id
         )
         db.session.add(post)
         db.session.commit()
         return jsonify(post.to_dict()), 201
-    posts = Post.query.all()
+
+    posts = Post.query.order_by(Post.timestamp.desc()).all()
     return jsonify([p.to_dict() for p in posts])
+
+# Like a post
+@app.route('/api/posts/<int:post_id>/like', methods=['POST'])
+def like_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    post.likes += 1
+    db.session.commit()
+    return jsonify({'likes': post.likes})
 
 @app.route('/api/gardens', methods=['GET', 'POST'])
 def api_gardens():

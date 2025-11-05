@@ -78,45 +78,79 @@ function createGarden() {
     });
 }
 
-// Community Form Handler (if you have one)
+
+
+// Wait for DOM to load
+document.addEventListener('DOMContentLoaded', function() {
+    const postForm = document.getElementById('postForm');
+    const submitPostBtn = document.getElementById('submitPostBtn');
+
+    if (submitPostBtn && postForm) {
+        submitPostBtn.addEventListener('click', function() {
+            createPost();
+        });
+    }
+});
+
+// Create a new post with image upload
 function createPost() {
     const postForm = document.getElementById('postForm');
     if (!postForm) return;
 
-    const formData = new FormData(postForm);
+    const formData = new FormData(postForm); // picks up file inputs
 
-    const postData = {
-        title: formData.get('title'),
-        content: formData.get('content'),
-        food_type: formData.get('food_type'),
-        quantity: formData.get('quantity'),
-        location: formData.get('location'),
-        user_id: 1  // Default user ID
-    };
-
-    if (!postData.title.trim()) {
-        alert('Please enter a title');
-        return;
-    }
+    // Add user_id 
+    formData.append('user_id', 1);
 
     fetch('/api/posts', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(postData)
+        body: formData 
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+    })
     .then(data => {
         console.log('Post created:', data);
         postForm.reset();
-        alert('Post shared successfully!');
-        setTimeout(() => {
-            location.reload();
-        }, 500);
+
+        // Hide the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('newPostModal'));
+        if (modal) modal.hide();
+
+        alert('Your post was successfully shared!');
+        setTimeout(() => location.reload(), 500);
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Error creating post');
+        console.error('Error creating post:', error);
+        alert('Error creating post. Please try again.');
     });
 }
+
+// Like button handler
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.closest('.like-button')) {
+            const button = e.target.closest('.like-button');
+            const postId = button.dataset.postId;
+            
+            fetch(`/api/posts/${postId}/like`, { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('Network response was not ok');
+                return res.json();
+            })
+            .then(data => {
+                button.querySelector('.likes-count').textContent = data.likes;
+            })
+            .catch(err => {
+                console.error('Error liking post:', err);
+                alert('Error updating like count. Please try again.');
+            });
+        }
+    });
+});
