@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Gardens - FoodShare{% endblock %}
 {% block content %}
-<div class="container">
+<div class="container py-4">
     <div class="row mb-4">
         <div class="col-lg-8">
             <h1 class="mb-4">
@@ -15,16 +15,28 @@
         </div>
     </div>
 
-    <div class="row g-4">
+    <!-- Search Bar -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" id="gardenSearch" placeholder="Search gardens by name or location...">
+            </div>
+        </div>
+    </div>
+
+    <!-- Gardens Grid -->
+    <div class="row g-4" id="gardensContainer">
         {% if gardens %}
             {% for garden in gardens %}
-            <div class="col-lg-4">
-                <div class="card h-100">
-                    <div class="card-header bg-transparent border-bottom border-success">
-                        <i class="fas fa-seedling"></i>
+            <div class="col-lg-4 col-md-6 garden-item" data-name="{{ garden.name|lower }}" data-location="{{ garden.location|lower }}">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-seedling"></i> {{ garden.name }}
+                        </h5>
                     </div>
                     <div class="card-body">
-                        <h5 class="card-title">{{ garden.name }}</h5>
                         <p class="card-text">{{ garden.description }}</p>
                         <div class="mb-3">
                             <small class="text-muted">
@@ -34,9 +46,9 @@
                                 <i class="fas fa-sprout"></i> <strong>Plants:</strong> {{ garden.plants }}
                             </small>
                         </div>
-                        <a href="#" class="btn btn-sm btn-outline-success">
-                            <i class="fas fa-eye"></i> View Details
-                        </a>
+                        <button class="btn btn-outline-success btn-sm" onclick="viewGardenPlots({{ garden.id }}, '{{ garden.name }}')">
+                            <i class="fas fa-th"></i> View Garden Plots
+                        </button>
                     </div>
                 </div>
             </div>
@@ -51,8 +63,9 @@
     </div>
 </div>
 
+<!-- New Garden Modal -->
 <div class="modal fade" id="newGardenModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
@@ -61,24 +74,75 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="gardenForm">
-                    <div class="mb-3">
-                        <label class="form-label">Garden Name</label>
-                        <input type="text" class="form-control" name="name" required>
+                <div class="row">
+                    <!-- Left side - Form -->
+                    <div class="col-md-5">
+                        <form id="gardenForm">
+                            <div class="mb-3">
+                                <label class="form-label">Garden Name</label>
+                                <input type="text" class="form-control" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="description" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Location</label>
+                                <input type="text" class="form-control" name="location">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Plants Growing</label>
+                                <input type="text" class="form-control" name="plants" placeholder="e.g., tomatoes, lettuce, herbs">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Garden Grid Size</label>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label class="form-label small">Rows</label>
+                                        <input type="number" class="form-control" id="newGardenRows" name="rows" value="5" min="3" max="10">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small">Columns</label>
+                                        <input type="number" class="form-control" id="newGardenCols" name="cols" value="5" min="3" max="10">
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    
+                    <!-- Right side - Plot Designer -->
+                    <div class="col-md-7">
+                        <div class="p-3 bg-light rounded">
+                            <h6 class="mb-3">
+                                <i class="fas fa-paint-brush"></i> Design Your Garden Layout
+                            </h6>
+                            <p class="small text-muted mb-3">
+                                Click on plots to toggle them between available (green) and unavailable (gray). Unavailable plots are non-plantable areas like pathways or structures.
+                            </p>
+                            
+                            <!-- Legend for designer -->
+                            <div class="mb-3 d-flex gap-3">
+                                <div>
+                                    <span class="plot-legend" style="background-color: #90EE90;"></span>
+                                    <small>Available</small>
+                                </div>
+                                <div>
+                                    <span class="plot-legend" style="background-color: #D3D3D3;"></span>
+                                    <small>Not Available</small>
+                                </div>
+                            </div>
+                            
+                            <!-- Preview Grid -->
+                            <div id="designerGrid" class="garden-grid mx-auto mb-3"></div>
+                            
+                            <div class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="clearAllBtn">
+                                    <i class="fas fa-redo"></i> Make All Available
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Location</label>
-                        <input type="text" class="form-control" name="location">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Plants Growing</label>
-                        <input type="text" class="form-control" name="plants" placeholder="e.g., tomatoes, lettuce, herbs">
-                    </div>
-                </form>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -87,4 +151,469 @@
         </div>
     </div>
 </div>
+
+<!-- Garden Plots Modal -->
+<div class="modal fade" id="gardenPlotsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="gardenPlotsTitle">
+                    <i class="fas fa-th"></i> Garden Plots
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Legend -->
+                <div class="mb-4 p-3 bg-light rounded">
+                    <h6 class="mb-3">Plot Legend:</h6>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div>
+                            <span class="plot-legend" style="background-color: #90EE90;"></span>
+                            <small>Available</small>
+                        </div>
+                        <div>
+                            <span class="plot-legend" style="background-color: #FFB6C1;"></span>
+                            <small>Your Plot</small>
+                        </div>
+                        <div>
+                            <span class="plot-legend" style="background-color: #FFD700;"></span>
+                            <small>Taken</small>
+                        </div>
+                        <div>
+                            <span class="plot-legend" style="background-color: #D3D3D3;"></span>
+                            <small>Not Available</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Garden Grid -->
+                <div id="gardenGrid" class="garden-grid mx-auto"></div>
+                
+                <!-- Selected Plot Info -->
+                <div id="plotInfo" class="mt-4 p-3 bg-light rounded" style="display: none;">
+                    <h6>Selected Plot: <span id="selectedPlotId"></span></h6>
+                    <p class="mb-2">Status: <strong id="plotStatus"></strong></p>
+                    <div id="plotActions"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.garden-grid {
+    display: inline-grid;
+    gap: 8px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.garden-plot {
+    width: 60px;
+    height: 60px;
+    border: 2px solid #333;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+    position: relative;
+}
+
+/* Smaller plots for the designer */
+#designerGrid .garden-plot {
+    width: 45px;
+    height: 45px;
+    font-size: 0.65rem;
+}
+
+.garden-plot:hover:not(.plot-null) {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.plot-available {
+    background-color: #90EE90;
+}
+
+.plot-taken {
+    background-color: #FFD700;
+}
+
+.plot-mine {
+    background-color: #FFB6C1;
+}
+
+.plot-null {
+    background-color: #D3D3D3;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Designer mode - null plots should be clickable */
+#designerGrid .plot-null {
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+#designerGrid .plot-null:hover {
+    opacity: 0.9;
+}
+
+.plot-legend {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 1px solid #333;
+    border-radius: 3px;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+.garden-plot.selected {
+    border-color: #0066cc;
+    border-width: 3px;
+}
+</style>
+
+<script>
+// Search functionality
+document.getElementById('gardenSearch').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const gardenItems = document.querySelectorAll('.garden-item');
+    
+    gardenItems.forEach(item => {
+        const name = item.dataset.name;
+        const location = item.dataset.location;
+        
+        if (name.includes(searchTerm) || location.includes(searchTerm)) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+});
+
+// Designer grid state
+let designerPlotStates = [];
+let isSubmittingGarden = false;  // Flag to prevent double submissions
+
+// Initialize designer grid when modal opens or grid size changes
+function initializeDesignerGrid() {
+    const rows = parseInt(document.getElementById('newGardenRows').value) || 5;
+    const cols = parseInt(document.getElementById('newGardenCols').value) || 5;
+    const totalPlots = rows * cols;
+    
+    // Initialize all as available
+    designerPlotStates = new Array(totalPlots).fill('available');
+    
+    renderDesignerGrid(rows, cols);
+}
+
+// Render the designer grid
+function renderDesignerGrid(rows, cols) {
+    const grid = document.getElementById('designerGrid');
+    grid.style.gridTemplateColumns = `repeat(${cols}, 45px)`;
+    grid.innerHTML = '';
+    
+    const totalPlots = rows * cols;
+    
+    for (let i = 0; i < totalPlots; i++) {
+        const plotDiv = document.createElement('div');
+        plotDiv.className = 'garden-plot';
+        plotDiv.dataset.index = i;
+        
+        const status = designerPlotStates[i];
+        
+        if (status === 'available') {
+            plotDiv.classList.add('plot-available');
+            plotDiv.textContent = `#${i + 1}`;
+        } else {
+            plotDiv.classList.add('plot-null');
+            plotDiv.innerHTML = '<i class="fas fa-times"></i>';
+        }
+        
+        // Toggle on click
+        plotDiv.onclick = () => toggleDesignerPlot(i);
+        
+        grid.appendChild(plotDiv);
+    }
+}
+
+// Toggle plot availability in designer
+function toggleDesignerPlot(index) {
+    if (designerPlotStates[index] === 'available') {
+        designerPlotStates[index] = 'null';
+    } else {
+        designerPlotStates[index] = 'available';
+    }
+    
+    const rows = parseInt(document.getElementById('newGardenRows').value) || 5;
+    const cols = parseInt(document.getElementById('newGardenCols').value) || 5;
+    renderDesignerGrid(rows, cols);
+}
+
+// Clear all - make all plots available
+document.getElementById('clearAllBtn').addEventListener('click', function() {
+    const rows = parseInt(document.getElementById('newGardenRows').value) || 5;
+    const cols = parseInt(document.getElementById('newGardenCols').value) || 5;
+    const totalPlots = rows * cols;
+    designerPlotStates = new Array(totalPlots).fill('available');
+    renderDesignerGrid(rows, cols);
+});
+
+// Update grid when rows/cols change
+document.getElementById('newGardenRows').addEventListener('change', initializeDesignerGrid);
+document.getElementById('newGardenCols').addEventListener('change', initializeDesignerGrid);
+
+// Initialize designer grid when modal is shown
+document.getElementById('newGardenModal').addEventListener('shown.bs.modal', function() {
+    initializeDesignerGrid();
+});
+
+// Reset submission flag when modal is hidden
+document.getElementById('newGardenModal').addEventListener('hidden.bs.modal', function() {
+    isSubmittingGarden = false;
+    document.getElementById('submitGardenBtn').disabled = false;
+    document.getElementById('submitGardenBtn').innerHTML = 'Create Garden';
+    document.getElementById('gardenForm').reset();
+});
+
+// Store current garden plots data
+let currentGardenData = {};
+
+// View garden plots
+function viewGardenPlots(gardenId, gardenName) {
+    document.getElementById('gardenPlotsTitle').innerHTML = `<i class="fas fa-th"></i> ${gardenName} - Garden Plots`;
+    
+    // Fetch garden plot data
+    fetch(`/api/gardens/${gardenId}/plots`)
+        .then(response => response.json())
+        .then(data => {
+            currentGardenData = data;
+            renderGardenGrid(data);
+            const modal = new bootstrap.Modal(document.getElementById('gardenPlotsModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load garden plots');
+        });
+}
+
+// Render the garden grid
+function renderGardenGrid(data) {
+    const grid = document.getElementById('gardenGrid');
+    const plots = data.plots;
+    const rows = data.rows;
+    const cols = data.cols;
+    
+    grid.style.gridTemplateColumns = `repeat(${cols}, 60px)`;
+    grid.innerHTML = '';
+    
+    for (let i = 0; i < rows * cols; i++) {
+        const plot = plots[i];
+        const plotDiv = document.createElement('div');
+        plotDiv.className = 'garden-plot';
+        plotDiv.dataset.index = i;
+        
+        if (plot.status === 'null') {
+            plotDiv.classList.add('plot-null');
+            plotDiv.textContent = '';
+        } else if (plot.status === 'available') {
+            plotDiv.classList.add('plot-available');
+            plotDiv.textContent = `#${i + 1}`;
+            plotDiv.onclick = () => selectPlot(i, plot);
+        } else if (plot.status === 'mine') {
+            plotDiv.classList.add('plot-mine');
+            plotDiv.textContent = `#${i + 1}`;
+            plotDiv.innerHTML += '<br><small>YOU</small>';
+            plotDiv.onclick = () => selectPlot(i, plot);
+        } else if (plot.status === 'taken') {
+            plotDiv.classList.add('plot-taken');
+            plotDiv.textContent = `#${i + 1}`;
+            plotDiv.onclick = () => selectPlot(i, plot);
+        }
+        
+        grid.appendChild(plotDiv);
+    }
+}
+
+// Select a plot
+function selectPlot(index, plot) {
+    // Remove previous selection
+    document.querySelectorAll('.garden-plot').forEach(p => p.classList.remove('selected'));
+    
+    // Add selection to clicked plot
+    document.querySelector(`[data-index="${index}"]`).classList.add('selected');
+    
+    // Show plot info
+    const plotInfo = document.getElementById('plotInfo');
+    const plotActions = document.getElementById('plotActions');
+    
+    document.getElementById('selectedPlotId').textContent = `#${index + 1}`;
+    document.getElementById('plotStatus').textContent = plot.status.charAt(0).toUpperCase() + plot.status.slice(1);
+    
+    plotInfo.style.display = 'block';
+    
+    // Show appropriate actions
+    if (plot.status === 'available') {
+        plotActions.innerHTML = `
+            <button class="btn btn-success" onclick="claimPlot(${index})">
+                <i class="fas fa-check"></i> Claim This Plot
+            </button>
+        `;
+    } else if (plot.status === 'mine') {
+        plotActions.innerHTML = `
+            <button class="btn btn-danger" onclick="releasePlot(${index})">
+                <i class="fas fa-times"></i> Release This Plot
+            </button>
+        `;
+    } else if (plot.status === 'taken') {
+        plotActions.innerHTML = `
+            <p class="text-muted mb-0">This plot is taken by ${plot.owner || 'another gardener'}</p>
+        `;
+    } else {
+        plotActions.innerHTML = `<p class="text-muted mb-0">This area is not available for planting</p>`;
+    }
+}
+
+// Claim a plot
+function claimPlot(index) {
+    fetch(`/api/gardens/${currentGardenData.garden_id}/plots/${index}/claim`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 1}) // Using demo user
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Refresh the grid
+            viewGardenPlots(currentGardenData.garden_id, currentGardenData.garden_name);
+            alert('Plot claimed successfully!');
+        } else {
+            alert('Failed to claim plot: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to claim plot');
+    });
+}
+
+// Release a plot
+function releasePlot(index) {
+    if (!confirm('Are you sure you want to release this plot?')) return;
+    
+    fetch(`/api/gardens/${currentGardenData.garden_id}/plots/${index}/release`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 1}) // Using demo user
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Refresh the grid
+            viewGardenPlots(currentGardenData.garden_id, currentGardenData.garden_name);
+            alert('Plot released successfully!');
+        } else {
+            alert('Failed to release plot: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to release plot');
+    });
+}
+
+// Create new garden
+document.getElementById('submitGardenBtn').addEventListener('click', function(e) {
+    // Check if already submitting
+    if (isSubmittingGarden) {
+        console.log('Already submitting, ignoring duplicate request');
+        return;
+    }
+    
+    // Prevent multiple submissions
+    if (this.disabled) return;
+    
+    const form = document.getElementById('gardenForm');
+    
+    // Validate form
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const gardenName = formData.get('name').trim();
+    
+    // Check if garden name already exists
+    fetch('/api/gardens')
+        .then(response => response.json())
+        .then(existingGardens => {
+            const nameExists = existingGardens.some(g => g.name.toLowerCase() === gardenName.toLowerCase());
+            
+            if (nameExists) {
+                alert(`A garden named "${gardenName}" already exists! Please choose a different name.`);
+                return;
+            }
+            
+            // Proceed with submission if name is unique
+            submitGarden(formData, gardenName);
+        })
+        .catch(error => {
+            console.error('Error checking for duplicates:', error);
+            // Proceed anyway if check fails
+            submitGarden(formData, gardenName);
+        });
+});
+
+// Separate function to handle the actual submission
+function submitGarden(formData, gardenName) {
+    const btn = document.getElementById('submitGardenBtn');
+    
+    // Set submission flag
+    isSubmittingGarden = true;
+    
+    // Disable button to prevent double submission
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+    
+    const gardenData = {
+        name: gardenName,
+        description: formData.get('description'),
+        location: formData.get('location'),
+        plants: formData.get('plants'),
+        user_id: 1, // Using demo user
+        rows: parseInt(formData.get('rows')),
+        cols: parseInt(formData.get('cols')),
+        plot_states: designerPlotStates  // Send the custom plot configuration
+    };
+    
+    fetch('/api/gardens', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(gardenData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        bootstrap.Modal.getInstance(document.getElementById('newGardenModal')).hide();
+        location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to create garden');
+        // Re-enable button on error
+        isSubmittingGarden = false;
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+</script>
 {% endblock %}

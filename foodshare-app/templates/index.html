@@ -1,18 +1,33 @@
 {% extends "base.html" %}
 {% block title %}Home - FoodShare{% endblock %}
 {% block content %}
+<style>
+    html {
+        scroll-behavior: smooth;
+    }
+    
+    /* Custom bee cursor */
+    body, html {
+        cursor: url('data:image/svg+xml;utf8,<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><ellipse cx="16" cy="18" rx="7" ry="9" fill="%23FFD700" stroke="%23000" stroke-width="1"/><rect x="9" y="14" width="14" height="2" fill="%23000" rx="1"/><rect x="9" y="19" width="14" height="2" fill="%23000" rx="1"/><rect x="9" y="24" width="14" height="2" fill="%23000" rx="1"/><circle cx="16" cy="10" r="4" fill="%23FFD700" stroke="%23000" stroke-width="1"/><circle cx="14.5" cy="10" r="1" fill="%23000"/><circle cx="17.5" cy="10" r="1" fill="%23000"/><line x1="14" y1="7" x2="12" y2="4" stroke="%23000" stroke-width="1" stroke-linecap="round"/><line x1="18" y1="7" x2="20" y2="4" stroke="%23000" stroke-width="1" stroke-linecap="round"/><circle cx="12" cy="4" r="1" fill="%23000"/><circle cx="20" cy="4" r="1" fill="%23000"/><ellipse cx="11" cy="15" rx="4" ry="6" fill="rgba(255, 255, 255, 0.7)" stroke="%23000" stroke-width="0.5" transform="rotate(-20 11 15)"/><ellipse cx="21" cy="15" rx="4" ry="6" fill="rgba(255, 255, 255, 0.7)" stroke="%23000" stroke-width="0.5" transform="rotate(20 21 15)"/><polygon points="16,27 15,30 17,30" fill="%23000"/></svg>') 16 16, auto;
+    }
+    
+    /* Pointer cursor for interactive elements */
+    a, button, .btn {
+        cursor: url('data:image/svg+xml;utf8,<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><ellipse cx="16" cy="18" rx="7" ry="9" fill="%23FFD700" stroke="%23000" stroke-width="1"/><rect x="9" y="14" width="14" height="2" fill="%23000" rx="1"/><rect x="9" y="19" width="14" height="2" fill="%23000" rx="1"/><rect x="9" y="24" width="14" height="2" fill="%23000" rx="1"/><circle cx="16" cy="10" r="4" fill="%23FFD700" stroke="%23000" stroke-width="1"/><circle cx="14.5" cy="10" r="1" fill="%23000"/><circle cx="17.5" cy="10" r="1" fill="%23000"/><line x1="14" y1="7" x2="12" y2="4" stroke="%23000" stroke-width="1" stroke-linecap="round"/><line x1="18" y1="7" x2="20" y2="4" stroke="%23000" stroke-width="1" stroke-linecap="round"/><circle cx="12" cy="4" r="1" fill="%23000"/><circle cx="20" cy="4" r="1" fill="%23000"/><ellipse cx="11" cy="15" rx="4" ry="6" fill="rgba(255, 255, 255, 0.7)" stroke="%23000" stroke-width="0.5" transform="rotate(-20 11 15)"/><ellipse cx="21" cy="15" rx="4" ry="6" fill="rgba(255, 255, 255, 0.7)" stroke="%23000" stroke-width="0.5" transform="rotate(20 21 15)"/><polygon points="16,27 15,30 17,30" fill="%23000"/></svg>') 16 16, pointer;
+    }
+</style>
 <div class="container-fluid">
     <!-- Hero Section -->
     <section class="hero-section">
         <div class="container">
             <div class="row align-items-center min-vh-75">
                 <div class="col-lg-6">
-                    <p class="text-uppercase text-muted" style="font-size: 0.875rem; letter-spacing: 2px; font-weight: 600;">Innovation for Sustainability</p>
-                    <h1 class="display-4 fw-bold mb-4">Reducing Food Waste Through Smart Solutions</h1>
-                    <p class="lead mb-4" style="font-size: 1.1rem;">Join us in revolutionizing how households and communities approach food consumption. Our integrated digital platform combines AI-powered tracking, community sharing, and educational tools to create a sustainable future.</p>
+                    <p class="text-uppercase text-muted" style="font-size: 0.875rem; letter-spacing: 2px; font-weight: 600;">Connect. Share. Grow.</p>
+                    <h1 class="display-4 fw-bold mb-4">Reducing Food Waste Through Community Action</h1>
+                    <p class="lead mb-4" style="font-size: 1.1rem;">FoodShare brings your community together to tackle food waste. Share surplus food, tend community gardens, and track your impact—all while building connections with neighbors who care about sustainability.</p>
                     <div class="d-flex gap-3 flex-wrap">
-                        <a href="/community" class="btn btn-success btn-lg">Explore Features</a>
-                        <a href="#" class="btn btn-outline-success btn-lg">Meet Our Team</a>
+                        <a href="/community" class="btn btn-success btn-lg">Start Sharing</a>
+                        <a href="#featured-gardens" class="btn btn-outline-success btn-lg">Find a Garden</a>
                     </div>
                 </div>
                 <div class="col-lg-6 text-center position-relative d-flex justify-content-center">
@@ -25,41 +40,71 @@
         </div>
     </section>
 
-    <!-- Full Screen Blooming Hibiscus Flower Section -->
-    <section class="full-screen-flower-section">
-        <!-- Green blurred leaves background -->
-        <div class="flower-bg-leaf leaf-bg-1"></div>
-        <div class="flower-bg-leaf leaf-bg-2"></div>
-        <div class="flower-bg-leaf leaf-bg-3"></div>
-
-        <!-- Main Hibiscus Flower Container -->
-        <div class="hibiscus-wrapper">
-            <!-- BACK PETALS - Light pink, behind -->
-            <div class="petal back-petal bp-1"></div>
-            <div class="petal back-petal bp-2"></div>
-
-            <!-- FRONT PETALS - Deep pink, on top -->
-            <div class="petal front-petal fp-1"></div>
-            <div class="petal front-petal fp-2"></div>
-
-            <!-- STAMEN - Central yellow structure -->
-            <div class="stamen-tube"></div>
-            <div class="stamen-head"></div>
+    <!-- Our Features Section -->
+    <section class="py-5" style="background-color: var(--light-bg);">
+        <div class="container">
+            <h2 class="text-center mb-4 display-5 fw-bold">Three Ways to Make an Impact</h2>
+            <p class="text-center lead mb-5" style="max-width: 900px; margin-left: auto; margin-right: auto;">
+                FoodShare offers three main features that work together to create an immersive and engaging experience, all designed to help you reduce food waste in your community.
+            </p>
             
-            <!-- STAMEN FILAMENTS - Red/pink threads at top -->
-            <div class="filament f-1"></div>
-            <div class="filament f-2"></div>
-            <div class="filament f-3"></div>
-            <div class="filament f-4"></div>
-            <div class="filament f-5"></div>
-            <div class="filament f-6"></div>
-            <div class="filament f-7"></div>
-            <div class="filament f-8"></div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 feature-card">
+                        <div class="card-body">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-comments icon-large" style="color: var(--primary-green);"></i>
+                            </div>
+                            <h5 class="card-title text-center">Community Donation Forum</h5>
+                            <p class="card-text">
+                                Our most impactful feature—post surplus food from your garden or home to share with neighbors. Keep good food from going to waste by connecting with community members who need it.
+                            </p>
+                            <div class="text-center mt-3">
+                                <a href="/community" class="btn btn-success">Visit Forum</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100 feature-card">
+                        <div class="card-body">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-user-circle icon-large" style="color: var(--primary-green);"></i>
+                            </div>
+                            <h5 class="card-title text-center">Profile & Gamification</h5>
+                            <p class="card-text">
+                                Track your impact! View your donation streak and the gardens you've tended. Our gamification system keeps you engaged and motivated to stay active in the food waste reduction movement.
+                            </p>
+                            <div class="text-center mt-3">
+                                <a href="/profile" class="btn btn-success">View Profile</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100 feature-card">
+                        <div class="card-body">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-seedling icon-large" style="color: var(--primary-green);"></i>
+                            </div>
+                            <h5 class="card-title text-center">Gardens Information</h5>
+                            <p class="card-text">
+                                Explore local community gardens and find opportunities to get involved. Easily view garden details and discover plots that need gardeners—perfect for those ready to grow their own food.
+                            </p>
+                            <div class="text-center mt-3">
+                                <a href="/garden" class="btn btn-success">Explore Gardens</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
     <!-- Featured Community Gardens Section -->
-    <section class="py-5">
+    <section id="featured-gardens" class="py-5">
         <div class="container">
             <h2 class="text-center mb-5 display-5 fw-bold">Featured Community Gardens</h2>
             <div class="row g-4">
@@ -77,7 +122,7 @@
                                     <small class="text-muted"><strong>Location:</strong> {{ garden.location }}</small><br>
                                     <small class="text-muted"><strong>Plants:</strong> {{ garden.plants }}</small>
                                 </div>
-                                <a href="/garden" class="btn btn-sm btn-outline-success">View Details</a>
+                                <a href="/garden" class="btn btn-sm btn-success">View Details</a>
                             </div>
                         </div>
                     </div>
@@ -105,27 +150,39 @@
                 <div class="col-md-4">
                     <div class="card h-100 feature-card">
                         <div class="card-body text-center">
-                            <i class="fas fa-apple-alt icon-large"></i>
-                            <h5 class="card-title mt-3">Share Food</h5>
-                            <p class="card-text">Post surplus fruits, vegetables, and meals to keep them out of landfills.</p>
+                            <div class="mb-3">
+                                <div style="width: 80px; height: 80px; background-color: var(--primary-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                    <span style="font-size: 2rem; font-weight: bold; color: white;">1</span>
+                                </div>
+                            </div>
+                            <h5 class="card-title mt-3">Share Surplus Food</h5>
+                            <p class="card-text">Post extra fruits, vegetables, or meals on the donation forum to help neighbors and prevent waste.</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card h-100 feature-card">
                         <div class="card-body text-center">
-                            <i class="fas fa-clover icon-large"></i>
-                            <h5 class="card-title mt-3">Grow Together</h5>
-                            <p class="card-text">Connect with local gardeners and grow food in shared community gardens.</p>
+                            <div class="mb-3">
+                                <div style="width: 80px; height: 80px; background-color: var(--primary-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                    <span style="font-size: 2rem; font-weight: bold; color: white;">2</span>
+                                </div>
+                            </div>
+                            <h5 class="card-title mt-3">Tend a Garden</h5>
+                            <p class="card-text">Find local community gardens looking for gardeners and grow fresh produce sustainably.</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card h-100 feature-card">
                         <div class="card-body text-center">
-                            <i class="fas fa-users icon-large"></i>
-                            <h5 class="card-title mt-3">Build Community</h5>
-                            <p class="card-text">Meet neighbors and create a network of food-conscious individuals.</p>
+                            <div class="mb-3">
+                                <div style="width: 80px; height: 80px; background-color: var(--primary-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                    <span style="font-size: 2rem; font-weight: bold; color: white;">3</span>
+                                </div>
+                            </div>
+                            <h5 class="card-title mt-3">Track Your Impact</h5>
+                            <p class="card-text">Build your streak, earn recognition, and watch your contribution to food waste reduction grow.</p>
                         </div>
                     </div>
                 </div>
@@ -137,8 +194,11 @@
     <section class="py-5 text-white text-center" style="background-color: var(--primary-green);">
         <div class="container">
             <h2 class="display-5 fw-bold mb-4">Ready to Make a Difference?</h2>
-            <p class="lead mb-4">Join thousands of community members committed to reducing food waste.</p>
-            <a href="/community" class="btn btn-light btn-lg" style="color: var(--primary-green); font-weight: 600;">Get Started</a>
+            <p class="lead mb-4">Join your neighbors in creating a more sustainable community, one shared meal at a time.</p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <a href="/community" class="btn btn-light btn-lg" style="color: var(--primary-green); font-weight: 600;">Browse Donations</a>
+                <a href="#featured-gardens" class="btn btn-outline-light btn-lg">Find Gardens</a>
+            </div>
         </div>
     </section>
 </div>
