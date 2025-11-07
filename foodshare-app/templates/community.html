@@ -59,10 +59,39 @@
                                 <i class="fas fa-clock"></i> {{ post.timestamp }}
                             </small>
 
-                            <button class="btn btn-outline-success btn-sm like-button" 
-                                    data-post-id="{{ post.id }}">
-                                <i class="fas fa-heart"></i> <span class="likes-count">{{ post.likes }}</span>
-                            </button>
+                            <div>
+                                <button class="btn btn-outline-primary btn-sm reply-button me-2" 
+                                        data-post-id="{{ post.id }}">
+                                    <i class="fas fa-reply"></i> Reply <span class="replies-count">({{ post.replies|length }})</span>
+                                </button>
+                                <button class="btn btn-outline-success btn-sm like-button" 
+                                        data-post-id="{{ post.id }}">
+                                    <i class="fas fa-heart"></i> <span class="likes-count">{{ post.likes }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Replies Section -->
+                        <div class="replies-section mt-3" id="replies-section-{{ post.id }}" style="display: none;">
+                            <hr>
+                            <!-- Reply Form -->
+                            <div class="reply-form mb-3">
+                                <div class="input-group">
+                                    <input type="text" 
+                                           class="form-control reply-input" 
+                                           placeholder="Write a reply..." 
+                                           data-post-id="{{ post.id }}">
+                                    <button class="btn btn-success submit-reply-btn" 
+                                            data-post-id="{{ post.id }}">
+                                        <i class="fas fa-paper-plane"></i> Send
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Replies List -->
+                            <div class="replies-list" id="replies-list-{{ post.id }}">
+                                <!-- Replies will be loaded dynamically -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -130,4 +159,207 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Post submission handler
+    const submitPostBtn = document.getElementById('submitPostBtn');
+    if (submitPostBtn) {
+        submitPostBtn.addEventListener('click', submitPost);
+    }
+
+    // Like button handlers
+    document.querySelectorAll('.like-button').forEach(button => {
+        button.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            likePost(postId, this);
+        });
+    });
+
+    // Reply button handlers - toggle reply section
+    document.querySelectorAll('.reply-button').forEach(button => {
+        button.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            toggleRepliesSection(postId);
+        });
+    });
+
+    // Submit reply handlers
+    document.querySelectorAll('.submit-reply-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            submitReply(postId);
+        });
+    });
+
+    // Allow Enter key to submit reply
+    document.querySelectorAll('.reply-input').forEach(input => {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const postId = this.dataset.postId;
+                submitReply(postId);
+            }
+        });
+    });
+});
+
+function submitPost() {
+    const form = document.getElementById('postForm');
+    
+    if (!form) {
+        console.error('Form element not found!');
+        alert('Error: Form not found. Please refresh the page.');
+        return;
+    }
+    
+    const formData = new FormData(form);
+    formData.append('user_id', 1); // Default user ID
+
+    fetch('/api/posts', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || 'Error creating post');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Post created:', data);
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('newPostModal'));
+        if (modal) {
+            modal.hide();
+        }
+        // Clear form
+        form.reset();
+        // Reload page to show new post
+        location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message || 'Error creating post');
+    });
+}
+
+function likePost(postId, button) {
+    fetch(`/api/posts/${postId}/like`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        const likesCount = button.querySelector('.likes-count');
+        likesCount.textContent = data.likes;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+function toggleRepliesSection(postId) {
+    const repliesSection = document.getElementById(`replies-section-${postId}`);
+    const isHidden = repliesSection.style.display === 'none';
+    
+    if (isHidden) {
+        repliesSection.style.display = 'block';
+        loadReplies(postId);
+    } else {
+        repliesSection.style.display = 'none';
+    }
+}
+
+function loadReplies(postId) {
+    fetch(`/api/posts/${postId}/replies`)
+    .then(response => response.json())
+    .then(replies => {
+        displayReplies(postId, replies);
+    })
+    .catch(error => {
+        console.error('Error loading replies:', error);
+    });
+}
+
+function displayReplies(postId, replies) {
+    const repliesList = document.getElementById(`replies-list-${postId}`);
+    
+    if (replies.length === 0) {
+        repliesList.innerHTML = '<p class="text-muted small">No replies yet. Be the first to reply!</p>';
+        return;
+    }
+    
+    repliesList.innerHTML = replies.map(reply => `
+        <div class="reply-item mb-2 p-2 bg-light rounded">
+            <div class="d-flex justify-content-between">
+                <strong class="text-primary">${reply.author}</strong>
+                <small class="text-muted">${formatTimestamp(reply.timestamp)}</small>
+            </div>
+            <p class="mb-0 mt-1">${escapeHtml(reply.content)}</p>
+        </div>
+    `).join('');
+}
+
+function submitReply(postId) {
+    const input = document.querySelector(`.reply-input[data-post-id="${postId}"]`);
+    const content = input.value.trim();
+    
+    if (!content) {
+        alert('Please enter a reply');
+        return;
+    }
+    
+    fetch(`/api/posts/${postId}/replies`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            content: content,
+            user_id: 1 // Default user ID
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Reply created:', data);
+        input.value = ''; // Clear input
+        loadReplies(postId); // Reload replies
+        
+        // Update reply count
+        const replyButton = document.querySelector(`.reply-button[data-post-id="${postId}"]`);
+        const repliesCountSpan = replyButton.querySelector('.replies-count');
+        const currentCount = parseInt(repliesCountSpan.textContent.match(/\d+/)[0]);
+        repliesCountSpan.textContent = `(${currentCount + 1})`;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating reply');
+    });
+}
+
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    return date.toLocaleDateString();
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
 {% endblock %}

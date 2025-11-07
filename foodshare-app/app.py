@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timedelta
 import threading
 from collections import defaultdict
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
@@ -13,6 +14,14 @@ app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database', 'foodshare.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Configure file uploads
+UPLOAD_FOLDER = os.path.join(basedir, 'static', 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Create upload folder if it doesn't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 db = SQLAlchemy(app)
 
@@ -27,6 +36,10 @@ queue_mutex = threading.Lock()
 def clean_old_requests():
     """Remove old locks"""
     pass  # Not needed with locks
+
+def allowed_file(filename):
+    """Check if file extension is allowed"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Database Models
 class User(db.Model):
@@ -53,8 +66,11 @@ class Post(db.Model):
     food_type = db.Column(db.String(100))
     quantity = db.Column(db.String(100))
     location = db.Column(db.String(200))
+    image_url = db.Column(db.String(300))  # Added for image uploads
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     timestamp = db.Column(db.DateTime, default=db.func.now())
+    likes = db.Column(db.Integer, default=0)  # Added for like functionality
+    replies = db.relationship('Reply', backref='post', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
         return {
@@ -64,13 +80,34 @@ class Post(db.Model):
             'food_type': self.food_type,
             'quantity': self.quantity,
             'location': self.location,
+            'image_url': self.image_url,
             'author': self.author.username,
+            'likes': self.likes,
+            'timestamp': str(self.timestamp),
+            'reply_count': len(self.replies)
+        }
+
+class Reply(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=db.func.now())
+    author = db.relationship('User', backref='replies', lazy=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'content': self.content,
+            'author': self.author.username,
+            'user_id': self.user_id,
+            'post_id': self.post_id,
             'timestamp': str(self.timestamp)
         }
 
 class Garden(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False, unique=True)  # Make name unique
+    name = db.Column(db.String(120), nullable=False, unique=True)
     description = db.Column(db.Text)
     location = db.Column(db.String(200))
     plants = db.Column(db.Text)
@@ -95,8 +132,8 @@ class Garden(db.Model):
 class GardenPlot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     garden_id = db.Column(db.Integer, db.ForeignKey('garden.id'), nullable=False)
-    plot_index = db.Column(db.Integer, nullable=False)  # Position in grid (0 to rows*cols-1)
-    status = db.Column(db.String(20), default='available')  # available, taken, mine, null
+    plot_index = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), default='available')
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     claimed_at = db.Column(db.DateTime, nullable=True)
     
@@ -124,7 +161,7 @@ def index():
 
 @app.route('/community')
 def community():
-    posts = Post.query.all()
+    posts = Post.query.order_by(Post.timestamp.desc()).all()
     return render_template('community.html', posts=posts)
 
 @app.route('/profile')
@@ -155,20 +192,214 @@ def api_users():
 @app.route('/api/posts', methods=['GET', 'POST'])
 def api_posts():
     if request.method == 'POST':
-        data = request.json
-        post = Post(
-            title=data['title'],
-            content=data['content'],
-            food_type=data.get('food_type'),
-            quantity=data.get('quantity'),
-            location=data.get('location'),
-            user_id=data['user_id']
-        )
-        db.session.add(post)
-        db.session.commit()
-        return jsonify(post.to_dict()), 201
-    posts = Post.query.all()
+        # Get form data (not JSON because we're receiving multipart/form-data with file)
+        title = request.form.get('title', '').strip()
+        content = request.form.get('content', '').strip()
+        food_type = request.form.get('food_type', '')
+        quantity = request.form.get('quantity', '')
+        location = request.form.get('location', '')
+        user_id = request.form.get('user_id', 1)
+        
+        # Validate required fields
+        if not title or not content:
+            return jsonify({'error': 'Title and content are required'}), 400
+        
+        # Create a unique key for this post (title + user_id)
+        request_key = f"post_{user_id}_{title[:50]}"
+        
+        # Add this request to the queue
+        with queue_mutex:
+            request_queues[request_key].append(request.form.to_dict())
+            queue_size = len(request_queues[request_key])
+            print(f"📥 Post request {queue_size} for '{title}' added to queue")
+        
+        # Get or create a lock for this post
+        with locks_mutex:
+            if request_key not in request_locks:
+                request_locks[request_key] = threading.Lock()
+            post_lock = request_locks[request_key]
+        
+        # Try to acquire the lock
+        lock_acquired = post_lock.acquire(blocking=False)
+        
+        if not lock_acquired:
+            # Another request is already processing, wait for it
+            print(f"⏳ Waiting for other post request to finish for '{title}'...")
+            post_lock.acquire()  # Wait for the lock
+            post_lock.release()  # Immediately release it
+            
+            # Find the post that was just created
+            recent_post = Post.query.filter_by(
+                title=title,
+                user_id=user_id
+            ).order_by(Post.timestamp.desc()).first()
+            
+            if recent_post:
+                print(f"✅ Returning existing post '{title}'")
+                return jsonify(recent_post.to_dict()), 201
+            else:
+                return jsonify({'error': 'Post creation failed'}), 500
+        
+        try:
+            print(f"🔒 Lock acquired for post '{title}', processing...")
+            
+            # Wait briefly for duplicate requests to arrive
+            time.sleep(0.15)  # 150ms wait
+            
+            # Get all requests from queue and pick the FIRST one (as requested)
+            with queue_mutex:
+                all_requests = request_queues[request_key]
+                best_request = all_requests[0] if all_requests else request.form.to_dict()
+                print(f"📊 Processing first of {len(all_requests)} duplicate post requests")
+                # Clear the queue
+                request_queues[request_key] = []
+            
+            # Handle image upload
+            image_filename = None
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and file.filename and allowed_file(file.filename):
+                    # Create a secure filename
+                    filename = secure_filename(file.filename)
+                    # Add timestamp to make filename unique
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
+                    filename = timestamp + filename
+                    
+                    # Save file
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(filepath)
+                    image_filename = filename
+                    print(f"📸 Saved image: {filename}")
+            
+            # Create post using the first request data
+            post = Post(
+                title=title,
+                content=content,
+                food_type=food_type,
+                quantity=quantity,
+                location=location,
+                image_url=image_filename,
+                user_id=user_id
+            )
+            db.session.add(post)
+            db.session.commit()
+            
+            print(f"✅ Post created: {title}")
+            return jsonify(post.to_dict()), 201
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Error creating post: {e}")
+            return jsonify({'error': str(e)}), 500
+        finally:
+            post_lock.release()
+            print(f"🔓 Lock released for post '{title}'")
+    
+    # GET request - return all posts
+    posts = Post.query.order_by(Post.timestamp.desc()).all()
     return jsonify([p.to_dict() for p in posts])
+
+@app.route('/api/posts/<int:post_id>/like', methods=['POST'])
+def like_post(post_id):
+    """Increment the like count for a post"""
+    post = Post.query.get_or_404(post_id)
+    post.likes += 1
+    db.session.commit()
+    return jsonify({'likes': post.likes})
+
+@app.route('/api/posts/<int:post_id>/replies', methods=['GET', 'POST'])
+def post_replies(post_id):
+    """Get all replies for a post or create a new reply"""
+    post = Post.query.get_or_404(post_id)
+    
+    if request.method == 'POST':
+        data = request.json
+        content = data.get('content', '').strip()
+        user_id = data.get('user_id', 1)
+        
+        # Validate required fields
+        if not content:
+            return jsonify({'error': 'Reply content is required'}), 400
+        
+        # Create a unique key for this reply (content + post_id + user_id)
+        request_key = f"reply_{post_id}_{user_id}_{content[:50]}"
+        
+        # Add this request to the queue
+        with queue_mutex:
+            request_queues[request_key].append(data)
+            queue_size = len(request_queues[request_key])
+            print(f"📥 Reply request {queue_size} for post {post_id} added to queue")
+        
+        # Get or create a lock for this reply
+        with locks_mutex:
+            if request_key not in request_locks:
+                request_locks[request_key] = threading.Lock()
+            reply_lock = request_locks[request_key]
+        
+        # Try to acquire the lock
+        lock_acquired = reply_lock.acquire(blocking=False)
+        
+        if not lock_acquired:
+            # Another request is already processing, wait for it
+            print(f"⏳ Waiting for other reply request to finish for post {post_id}...")
+            reply_lock.acquire()  # Wait for the lock
+            reply_lock.release()  # Immediately release it
+            
+            # Find the reply that was just created
+            recent_reply = Reply.query.filter_by(
+                post_id=post_id,
+                user_id=user_id,
+                content=content
+            ).order_by(Reply.timestamp.desc()).first()
+            
+            if recent_reply:
+                print(f"✅ Returning existing reply for post {post_id}")
+                return jsonify(recent_reply.to_dict()), 201
+            else:
+                return jsonify({'error': 'Reply creation failed'}), 500
+        
+        try:
+            print(f"🔒 Lock acquired for reply to post {post_id}, processing...")
+            
+            # Wait briefly for duplicate requests to arrive
+            time.sleep(0.15)  # 150ms wait
+            
+            # Get all requests from queue and pick the last one (most complete)
+            with queue_mutex:
+                all_requests = request_queues[request_key]
+                best_request = all_requests[-1] if all_requests else data
+                print(f"📊 Processing last of {len(all_requests)} duplicate reply requests")
+                # Clear the queue
+                request_queues[request_key] = []
+            
+            # Use the best request data
+            data = best_request
+            content = data.get('content', '').strip()
+            user_id = data.get('user_id', 1)
+            
+            # Create reply
+            reply = Reply(
+                content=content,
+                user_id=user_id,
+                post_id=post_id
+            )
+            db.session.add(reply)
+            db.session.commit()
+            
+            print(f"✅ Reply created for post {post_id}")
+            return jsonify(reply.to_dict()), 201
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Error creating reply: {e}")
+            return jsonify({'error': str(e)}), 500
+        finally:
+            reply_lock.release()
+            print(f"🔓 Lock released for reply to post {post_id}")
+    
+    # GET request - return all replies for this post
+    replies = Reply.query.filter_by(post_id=post_id).order_by(Reply.timestamp.asc()).all()
+    return jsonify([r.to_dict() for r in replies])
 
 @app.route('/api/gardens', methods=['GET', 'POST'])
 def api_gardens():
@@ -374,5 +605,4 @@ if __name__ == '__main__':
                 db.session.commit()
     
     # Run WITHOUT debug mode to prevent duplicate requests
-    # Note: You'll need to manually restart the server when you make code changes
     app.run(debug=False, port=5000)

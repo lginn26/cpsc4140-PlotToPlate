@@ -1,0 +1,113 @@
+/* Community Page Styles */
+
+.card {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card-img-top {
+    max-height: 400px;
+    object-fit: cover;
+}
+
+/* Reply Section Styles */
+.replies-section {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+.reply-form {
+    margin-bottom: 15px;
+}
+
+.reply-input {
+    border-radius: 20px;
+    padding: 10px 15px;
+    border: 1px solid #ced4da;
+}
+
+.reply-input:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.submit-reply-btn {
+    border-radius: 20px;
+    padding: 10px 20px;
+    font-weight: 500;
+}
+
+.replies-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.reply-item {
+    animation: fadeIn 0.3s ease-in;
+    border-left: 3px solid #28a745;
+}
+
+.reply-item:hover {
+    background-color: #e9ecef !important;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Button Styles */
+.reply-button, .like-button {
+    transition: all 0.2s;
+}
+
+.reply-button:hover {
+    transform: scale(1.05);
+}
+
+.like-button:hover {
+    transform: scale(1.05);
+}
+
+/* Scrollbar Styles for Replies List */
+.replies-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.replies-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.replies-list::-webkit-scrollbar-thumb {
+    background: #28a745;
+    border-radius: 10px;
+}
+
+.replies-list::-webkit-scrollbar-thumb:hover {
+    background: #218838;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-img-top {
+        max-height: 250px;
+    }
+    
+    .replies-list {
+        max-height: 300px;
+    }
+}
