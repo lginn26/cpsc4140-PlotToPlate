@@ -5,6 +5,7 @@ import json
 import time
 from datetime import datetime, timedelta
 import threading
+from collections import defaultdict
 
 app = Flask(__name__)
 
@@ -18,6 +19,10 @@ db = SQLAlchemy(app)
 # Request deduplication - stores locks for in-progress requests
 request_locks = {}
 locks_mutex = threading.Lock()
+
+# Queue to collect duplicate requests
+request_queues = defaultdict(list)
+queue_mutex = threading.Lock()
 
 def clean_old_requests():
     """Remove old locks"""
@@ -178,85 +183,113 @@ def api_gardens():
         # Create a unique key for this garden
         request_key = garden_name.lower()
         
+        # Add this request to the queue
+        with queue_mutex:
+            request_queues[request_key].append(data)
+            queue_size = len(request_queues[request_key])
+            print(f"📥 Request {queue_size} for '{garden_name}' added to queue")
+        
         # Get or create a lock for this garden name
         with locks_mutex:
             if request_key not in request_locks:
                 request_locks[request_key] = threading.Lock()
             garden_lock = request_locks[request_key]
         
-        # Try to acquire the lock - if another request has it, wait
-        print(f"🔒 Attempting to acquire lock for '{garden_name}'...")
-        with garden_lock:
-            print(f"✓ Lock acquired for '{garden_name}'")
+        # Try to acquire the lock
+        lock_acquired = garden_lock.acquire(blocking=False)
+        
+        if not lock_acquired:
+            # Another request is already processing, wait for it
+            print(f"⏳ Waiting for other request to finish for '{garden_name}'...")
+            garden_lock.acquire()  # Wait for the lock
+            garden_lock.release()  # Immediately release it
             
-            # Now check if garden already exists
+            # Check if garden was created
             existing_garden = Garden.query.filter_by(name=garden_name).first()
-            
             if existing_garden:
-                print(f"⚠️  Garden '{garden_name}' already exists, returning existing")
+                print(f"✅ Garden '{garden_name}' already created by another request")
+                return jsonify(existing_garden.to_dict()), 200
+            else:
+                print(f"⚠️  Garden '{garden_name}' not found after waiting")
+                return jsonify({'error': 'Garden creation failed'}), 500
+        
+        try:
+            print(f"🔒 Lock acquired for '{garden_name}', processing...")
+            
+            # Wait briefly for duplicate requests to arrive
+            time.sleep(0.15)  # 150ms wait
+            
+            # Get all requests from queue and pick the best one
+            with queue_mutex:
+                all_requests = request_queues[request_key]
+                print(f"📊 Found {len(all_requests)} request(s) in queue")
+                
+                # Pick the request with the most plot_states data
+                best_request = max(all_requests, key=lambda r: len(r.get('plot_states', [])))
+                plot_states_len = len(best_request.get('plot_states', []))
+                print(f"🎯 Selected best request with {plot_states_len} plot states")
+                
+                # Clear the queue
+                del request_queues[request_key]
+            
+            # Use the best request data
+            data = best_request
+            
+            # Check if garden already exists
+            existing_garden = Garden.query.filter_by(name=garden_name).first()
+            if existing_garden:
+                print(f"⚠️  Garden '{garden_name}' already exists")
                 return jsonify(existing_garden.to_dict()), 200
             
-            # Create the garden
+            # Create the garden with the best data
             rows = data.get('rows', 5)
             cols = data.get('cols', 5)
             plot_states = data.get('plot_states', [])
             
-            try:
-                garden = Garden(
-                    name=garden_name,
-                    description=data.get('description'),
-                    location=data.get('location'),
-                    plants=data.get('plants'),
-                    user_id=data['user_id'],
-                    rows=rows,
-                    cols=cols
+            print(f"📊 Creating garden with plot_states length: {len(plot_states)}")
+            
+            garden = Garden(
+                name=garden_name,
+                description=data.get('description'),
+                location=data.get('location'),
+                plants=data.get('plants'),
+                user_id=data['user_id'],
+                rows=rows,
+                cols=cols
+            )
+            db.session.add(garden)
+            db.session.flush()
+            
+            # Create garden plots
+            total_plots = rows * cols
+            for i in range(total_plots):
+                if plot_states and i < len(plot_states):
+                    status = plot_states[i]
+                else:
+                    is_null = (i == 0 or i == cols - 1 or i == total_plots - cols or i == total_plots - 1)
+                    status = 'null' if is_null else 'available'
+                
+                plot = GardenPlot(
+                    garden_id=garden.id,
+                    plot_index=i,
+                    status=status
                 )
-                db.session.add(garden)
-                db.session.flush()
-                
-                # Create garden plots
-                total_plots = rows * cols
-                for i in range(total_plots):
-                    if plot_states and i < len(plot_states):
-                        status = plot_states[i]
-                    else:
-                        is_null = (i == 0 or i == cols - 1 or i == total_plots - cols or i == total_plots - 1)
-                        status = 'null' if is_null else 'available'
-                    
-                    plot = GardenPlot(
-                        garden_id=garden.id,
-                        plot_index=i,
-                        status=status
-                    )
-                    db.session.add(plot)
-                
-                db.session.commit()
-                print(f"✅ Successfully created garden '{garden_name}'")
-                return jsonify(garden.to_dict()), 201
-                
-            except Exception as e:
-                db.session.rollback()
-                error_str = str(e)
-                if 'UNIQUE constraint failed' in error_str or 'unique' in error_str.lower():
-                    print(f"⚠️  UNIQUE constraint violation for '{garden_name}'")
-                    # Check if it exists now
-                    existing = Garden.query.filter_by(name=garden_name).first()
-                    if existing:
-                        return jsonify(existing.to_dict()), 200
-                    return jsonify({'error': 'A garden with this name already exists'}), 400
-                
-                print(f"❌ Error creating garden: {e}")
-                return jsonify({'error': 'Failed to create garden'}), 500
-            finally:
-                # Clean up the lock after a delay
-                def cleanup_lock():
-                    time.sleep(2)
-                    with locks_mutex:
-                        if request_key in request_locks:
-                            del request_locks[request_key]
-                            print(f"🧹 Cleaned up lock for '{garden_name}'")
-                
-                threading.Thread(target=cleanup_lock, daemon=True).start()
+                db.session.add(plot)
+            
+            db.session.commit()
+            print(f"✅ Successfully created garden '{garden_name}'")
+            return jsonify(garden.to_dict()), 201
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Error creating garden: {e}")
+            return jsonify({'error': 'Failed to create garden'}), 500
+        finally:
+            garden_lock.release()
+            # Clean up
+            with locks_mutex:
+                if request_key in request_locks:
+                    del request_locks[request_key]
             
     gardens = Garden.query.all()
     return jsonify([g.to_dict() for g in gardens])

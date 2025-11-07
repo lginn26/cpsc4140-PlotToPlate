@@ -302,15 +302,27 @@ document.getElementById('gardenSearch').addEventListener('input', function(e) {
 let designerPlotStates = [];
 let isSubmittingGarden = false;  // Flag to prevent double submissions
 
+// Debug: Log initial state
+console.log('🏁 Script loaded. Initial designerPlotStates:', designerPlotStates);
+
 // Initialize designer grid when modal opens or grid size changes
 function initializeDesignerGrid() {
+    console.log('🔧 initializeDesignerGrid() called');
     const rows = parseInt(document.getElementById('newGardenRows').value) || 5;
     const cols = parseInt(document.getElementById('newGardenCols').value) || 5;
     const totalPlots = rows * cols;
     
-    // Initialize all as available
-    designerPlotStates = new Array(totalPlots).fill('available');
+    // Preserve existing states when resizing, or initialize all as available
+    const oldStates = [...designerPlotStates];
+    designerPlotStates = new Array(totalPlots);
     
+    for (let i = 0; i < totalPlots; i++) {
+        // Keep old state if it exists, otherwise set as available
+        designerPlotStates[i] = (i < oldStates.length) ? oldStates[i] : 'available';
+    }
+    
+    console.log('🔧 Designer grid initialized:', {rows, cols, totalPlots, statesLength: designerPlotStates.length});
+    console.log('🔧 First 5 states:', designerPlotStates.slice(0, 5));
     renderDesignerGrid(rows, cols);
 }
 
@@ -364,6 +376,7 @@ document.getElementById('clearAllBtn').addEventListener('click', function() {
     const totalPlots = rows * cols;
     designerPlotStates = new Array(totalPlots).fill('available');
     renderDesignerGrid(rows, cols);
+    console.log('🧹 Cleared all plots to available');
 });
 
 // Update grid when rows/cols change
@@ -371,9 +384,16 @@ document.getElementById('newGardenRows').addEventListener('change', initializeDe
 document.getElementById('newGardenCols').addEventListener('change', initializeDesignerGrid);
 
 // Initialize designer grid when modal is shown
-document.getElementById('newGardenModal').addEventListener('shown.bs.modal', function() {
-    initializeDesignerGrid();
-});
+const modal = document.getElementById('newGardenModal');
+if (modal) {
+    modal.addEventListener('shown.bs.modal', function() {
+        console.log('🎬 Modal opened, initializing designer...');
+        initializeDesignerGrid();
+    });
+    console.log('✅ Modal event listener attached successfully');
+} else {
+    console.error('❌ Could not find newGardenModal element!');
+}
 
 // Reset submission flag when modal is hidden
 document.getElementById('newGardenModal').addEventListener('hidden.bs.modal', function() {
@@ -532,25 +552,46 @@ function releasePlot(index) {
 
 // Create new garden
 document.getElementById('submitGardenBtn').addEventListener('click', function(e) {
-    // Check if already submitting
-    if (isSubmittingGarden) {
-        console.log('Already submitting, ignoring duplicate request');
+    e.preventDefault();  // Prevent any default behavior
+    e.stopPropagation(); // Stop event from bubbling
+    
+    const btn = this;
+    
+    // IMMEDIATELY disable the button
+    if (btn.disabled || isSubmittingGarden) {
+        console.log('⛔ Button already disabled or submission in progress');
         return;
     }
     
-    // Prevent multiple submissions
-    if (this.disabled) return;
+    btn.disabled = true;
+    isSubmittingGarden = true;
     
     const form = document.getElementById('gardenForm');
     
     // Validate form
     if (!form.checkValidity()) {
         form.reportValidity();
+        btn.disabled = false;
+        isSubmittingGarden = false;
         return;
     }
     
     const formData = new FormData(form);
     const gardenName = formData.get('name').trim();
+    
+    // IMPORTANT: Capture plot states NOW before any async operations
+    const plotStatesToSend = [...designerPlotStates];  // Make a copy
+    console.log('💾 Captured plot states:', plotStatesToSend);
+    console.log('💾 Length:', plotStatesToSend.length);
+    
+    // Validation: Ensure we have plot states
+    if (!plotStatesToSend || plotStatesToSend.length === 0) {
+        console.error('❌ ERROR: Plot states array is empty!');
+        alert('Error: Garden layout is not initialized. Please close and reopen the form.');
+        btn.disabled = false;
+        isSubmittingGarden = false;
+        return;
+    }
     
     // Check if garden name already exists
     fetch('/api/gardens')
@@ -560,28 +601,24 @@ document.getElementById('submitGardenBtn').addEventListener('click', function(e)
             
             if (nameExists) {
                 alert(`A garden named "${gardenName}" already exists! Please choose a different name.`);
+                btn.disabled = false;
+                isSubmittingGarden = false;
                 return;
             }
             
             // Proceed with submission if name is unique
-            submitGarden(formData, gardenName);
+            submitGarden(formData, gardenName, plotStatesToSend, btn);
         })
         .catch(error => {
             console.error('Error checking for duplicates:', error);
             // Proceed anyway if check fails
-            submitGarden(formData, gardenName);
+            submitGarden(formData, gardenName, plotStatesToSend, btn);
         });
 });
 
 // Separate function to handle the actual submission
-function submitGarden(formData, gardenName) {
-    const btn = document.getElementById('submitGardenBtn');
-    
-    // Set submission flag
-    isSubmittingGarden = true;
-    
-    // Disable button to prevent double submission
-    btn.disabled = true;
+function submitGarden(formData, gardenName, plotStatesToSend, btn) {
+    // Button is already disabled, just update the text
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
     
@@ -593,8 +630,14 @@ function submitGarden(formData, gardenName) {
         user_id: 1, // Using demo user
         rows: parseInt(formData.get('rows')),
         cols: parseInt(formData.get('cols')),
-        plot_states: designerPlotStates  // Send the custom plot configuration
+        plot_states: plotStatesToSend  // Use the captured plot states
     };
+    
+    // Debug: Log what we're sending
+    console.log('📤 Sending garden data:', gardenData);
+    console.log('📤 Plot states array:', plotStatesToSend);
+    console.log('📤 Plot states length:', plotStatesToSend ? plotStatesToSend.length : 0);
+    console.log('📤 Rows x Cols:', gardenData.rows, 'x', gardenData.cols, '=', gardenData.rows * gardenData.cols);
     
     fetch('/api/gardens', {
         method: 'POST',
