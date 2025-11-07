@@ -110,4 +110,62 @@
     .replies-list {
         max-height: 300px;
     }
+    
+    /* Stack buttons vertically on mobile */
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 10px;
+    }
+    
+    /* Make reply and like buttons full width on mobile */
+    .reply-button, .like-button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Adjust card spacing */
+    .card {
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Make form inputs more touch-friendly */
+    .reply-input {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 12px 15px;
+    }
+    
+    .submit-reply-btn {
+        padding: 12px 20px;
+    }
+    
+    /* Improve modal on mobile */
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    /* Better spacing for post details */
+    .row.mb-3 .col-md-4 {
+        margin-bottom: 0.5rem;
+    }
 }
+
+@media (max-width: 576px) {
+    .card-title {
+        font-size: 1.25rem;
+    }
+    
+    .card-subtitle {
+        font-size: 0.9rem;
+    }
+    
+    h1 {
+        font-size: 1.75rem;
+    }
+    
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+    }
+}
+
