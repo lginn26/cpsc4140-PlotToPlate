@@ -16,10 +16,10 @@ def migrate():
         try:
             # Create the Reply table
             db.create_all()
-            print("✅ Reply table created successfully!")
+            print("Reply table created successfully!")
             print("Database migration completed.")
         except Exception as e:
-            print(f"❌ Error during migration: {e}")
+            print(f"Error during migration: {e}")
             return False
     return True
 
