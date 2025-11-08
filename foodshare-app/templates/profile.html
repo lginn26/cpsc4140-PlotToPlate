@@ -78,87 +78,112 @@
     </div>
   </div>
 
+  <!-- My Gardens Section -->
+  <div class="row mt-5">
+    <div class="col-12">
+      <div class="profile-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="section-title mb-0">My Gardens ({{ gardens|length }})</h5>
+          <a href="/garden" class="btn btn-sm btn-success">View All Gardens</a>
+        </div>
+        
+        {% if gardens %}
+        <div class="row g-3">
+          {% for garden in gardens %}
+          <div class="col-md-6 col-lg-4">
+            <div class="garden-item">
+              <div class="garden-header">
+                <h6 class="garden-name">{{ garden.name }}</h6>
+                <span class="garden-date">{{ garden.timestamp.strftime('%b %d, %Y') if garden.timestamp else 'Recently' }}</span>
+              </div>
+              <p class="garden-desc text-muted">{{ garden.description or 'No description provided.' }}</p>
+              <div class="garden-meta">
+                <span class="badge bg-light text-dark">
+                  <i class="fas fa-map-marker-alt"></i> {{ garden.location or 'Location not set' }}
+                </span>
+                <span class="badge bg-light text-dark">
+                  <i class="fas fa-seedling"></i> {{ garden.plants or 'Various plants' }}
+                </span>
+              </div>
+              <div class="garden-grid-info mt-2">
+                <small class="text-success">
+                  <i class="fas fa-th"></i> {{ garden.rows }}×{{ garden.cols }} grid
+                </small>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+          <i class="fas fa-leaf fa-3x text-muted mb-3"></i>
+          <p class="text-muted">You haven't created any gardens yet.</p>
+          <a href="/garden" class="btn btn-success">Create Your First Garden</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- My Posts Section -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="profile-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="section-title mb-0">My Posts ({{ posts|length }})</h5>
+          <a href="/community" class="btn btn-sm btn-success">View Community</a>
+        </div>
+        
+        {% if posts %}
+        <div class="posts-timeline">
+          {% for post in posts %}
+          <div class="post-item">
+            <div class="post-header">
+              <h6 class="post-title">{{ post.title }}</h6>
+              <span class="post-date">{{ post.timestamp.strftime('%b %d, %Y at %I:%M %p') if post.timestamp else 'Recently' }}</span>
+            </div>
+            <p class="post-content">{{ post.content[:150] }}{% if post.content|length > 150 %}...{% endif %}</p>
+            <div class="post-meta">
+              {% if post.food_type %}
+              <span class="badge bg-success">
+                <i class="fas fa-tag"></i> {{ post.food_type }}
+              </span>
+              {% endif %}
+              {% if post.quantity %}
+              <span class="badge bg-info text-dark">
+                <i class="fas fa-weight"></i> {{ post.quantity }}
+              </span>
+              {% endif %}
+              {% if post.location %}
+              <span class="badge bg-light text-dark">
+                <i class="fas fa-map-marker-alt"></i> {{ post.location }}
+              </span>
+              {% endif %}
+            </div>
+            <div class="post-stats mt-2">
+              <span class="stat-item">
+                <i class="fas fa-heart text-danger"></i> {{ post.likes }} likes
+              </span>
+              <span class="stat-item">
+                <i class="fas fa-reply text-primary"></i> {{ post.replies|length }} replies
+              </span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+          <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+          <p class="text-muted">You haven't created any posts yet.</p>
+          <a href="/community" class="btn btn-success">Share Your First Post</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
   <footer class="mt-5 text-center text-muted">
     🌿 FoodShare © 2025 — Growing Together 🌻
   </footer>
 </div>
-
-<!-- 🌿 Custom Styles -->
-<style>
-  body {
-    background-color: #f0f7f1;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  }
-
-  .profile-card {
-    background: #ffffff;
-    border-radius: 20px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .profile-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
-  }
-
-  .avatar-placeholder {
-    width: 130px;
-    height: 130px;
-    border-radius: 50%;
-    background-color: #e0e0e0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3rem;
-    color: #6c757d;
-    font-weight: 600;
-    margin: 0 auto;
-    border: 5px solid #c7ebca;
-  }
-
-  .badge-custom {
-    background-color: #66bb6a;
-    color: white;
-    border-radius: 10px;
-    padding: 0.5em 1em;
-    font-weight: 500;
-  }
-
-  .section-title {
-    font-weight: 600;
-    color: #2e7d32;
-  }
-
-  .fav-plant-btn {
-    display: inline-block;
-    background-color: #d9f2d9;
-    color: #2e7d32;
-    border: 1px solid #a5d6a7;
-    border-radius: 12px;
-    padding: 6px 14px;
-    margin-bottom: 8px;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.1s ease;
-  }
-
-  .fav-plant-btn:hover {
-    background-color: #43a047;
-    color: white;
-    transform: scale(1.03);
-  }
-
-  .streak-box {
-    background-color: #fff3cd;
-    border-radius: 15px;
-    padding: 1em;
-    text-align: center;
-    font-weight: 600;
-    color: #d35400;
-    font-size: 1.1rem;
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-  }
-</style>
 {% endblock %}
