@@ -2,112 +2,175 @@
 {% block title %}{{ user.username }}'s Profile | FoodShare{% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container py-5 profile-page">
+
+  <!-- TOP PROFILE CARD -->
   <div class="row justify-content-center mb-5">
-    <div class="col-md-6 text-center">
+    <div class="col-lg-6 col-md-8 text-center">
       <div class="profile-card p-4">
-        <div class="avatar-placeholder mb-3">
-          {{ user.username[0] | upper }}
+
+        <!-- Avatar with leafy ring -->
+        <div class="avatar-wrapper mb-3 position-relative d-inline-block">
+          <div class="avatar-placeholder d-flex align-items-center justify-content-center rounded-circle">
+            {{ user.username[0] | upper }}
+          </div>
+          <div class="avatar-ring">🌿</div>
         </div>
-        <h3 class="fw-bold">{{ user.username }}</h3>
+
+        <h3 class="fw-bold mb-1">{{ user.username }}</h3>
+
         <span class="badge badge-custom mb-2">
-          🌱 {{ user.role or "Garden Volunteer" }}
+          🌱 Garden Volunteer
         </span>
+
         <p class="text-muted mb-3">
           “{{ user.bio or 'Helping our community grow one plant at a time.' }}”
         </p>
 
-        <div class="d-flex justify-content-center gap-4 flex-wrap">
-          <span class="text-success"><i class="bi bi-leaf"></i> {{ user.plant_count or 45 }} plants</span>
-          <span class="text-success"><i class="bi bi-geo-alt"></i> {{ user.zone or "Zone 3" }}</span>
-          <span class="text-success"><i class="bi bi-people"></i> {{ user.friends or 18 }} friends</span>
+        <div class="d-flex justify-content-center gap-4 flex-wrap mb-3">
+          <span class="text-success">
+            <i class="bi bi-leaf"></i> {{ user.plant_count or 0 }} plants
+          </span>
+          <span class="text-success">
+            <i class="bi bi-geo-alt"></i> {{ user.zone or "Zone 3" }}
+          </span>
+          <span class="text-success">
+            <i class="bi bi-people"></i> {{ user.friends or 0 }} friends
+          </span>
         </div>
 
-        <!-- 🔥 Gardening Streak Section -->
-        {% if user.streak %}
-        <div class="mt-4 streak-box">
+        {% if user.streak and user.streak > 0 %}
+        <div class="mt-3 streak-box">
           🔥 {{ user.streak }}-Day Gardening Streak!
         </div>
+        {% else %}
+        <div class="mt-3 streak-box streak-box-soft">
+          🌤 Start a gardening streak by planting today!
+        </div>
         {% endif %}
       </div>
     </div>
   </div>
 
-  <div class="row g-4">
+  <!-- INTERACTIVE SUMMARY CARDS -->
+  <div class="row g-4 mb-4">
+
+    <!-- Recent Activity card = user’s gardens -->
     <div class="col-md-4">
-      <div class="profile-card p-4 h-100">
-        <h5 class="section-title mb-3">🌻 Recent Activity</h5>
-        {% if activities %}
-        <ul class="list-unstyled mb-0">
-          {% for act in activities %}
-          <li>{{ act }}</li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <p class="text-muted">No recent activity yet.</p>
-        {% endif %}
-      </div>
+      <a href="{{ url_for('activity') }}" class="summary-card-link text-decoration-none">
+        <div class="profile-card p-4 h-100 summary-card">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="section-title mb-0">🌻 Recent Activity</h5>
+            <span class="summary-pill">View gardens ↗</span>
+          </div>
+
+          {% if gardens %}
+          <ul class="list-unstyled mb-0 small">
+            {% for g in gardens[:3] %}
+            <li class="mb-1">🌱 Worked on <strong>{{ g.name }}</strong></li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="text-muted mb-0">
+            No recent activity yet. Start your first garden 🌿
+          </p>
+          {% endif %}
+        </div>
+      </a>
     </div>
 
+    <!-- Favorite Plants card -->
     <div class="col-md-4">
-      <div class="profile-card p-4 h-100">
-        <h5 class="section-title mb-3">🍅 Favorite Plants</h5>
-        {% if favorite_plants %}
-        <ul class="fav-plant-list list-unstyled">
-          {% for plant in favorite_plants %}
-          <li><button class="fav-plant-btn">{{ plant }}</button></li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <p class="text-muted">No favorite plants added yet.</p>
-        {% endif %}
-      </div>
+      <a href="{{ url_for('favorites') }}" class="summary-card-link text-decoration-none">
+        <div class="profile-card p-4 h-100 summary-card">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="section-title mb-0">🍅 Favorite Plants</h5>
+            <span class="summary-pill">Edit favorites ↗</span>
+          </div>
+
+          {% if favorite_plants %}
+          <ul class="fav-plant-list list-unstyled d-flex flex-wrap gap-2 mb-0">
+            {% for plant in favorite_plants[:6] %}
+            <li>
+              <span class="fav-plant-chip">
+                🌿 {{ plant }}
+              </span>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="text-muted mb-0">
+            No favorites yet – add your first 🌼
+          </p>
+          {% endif %}
+        </div>
+      </a>
     </div>
 
+    <!-- Community Contributions card -->
     <div class="col-md-4">
-      <div class="profile-card p-4 h-100">
-        <h5 class="section-title mb-3">🤝 Community Contributions</h5>
-        {% if contributions %}
-          {% for c in contributions %}
-            <p>{{ c }}</p>
-          {% endfor %}
-        {% else %}
-          <p class="text-muted">No contributions recorded yet.</p>
-        {% endif %}
-      </div>
+      <a href="{{ url_for('contributions') }}" class="summary-card-link text-decoration-none">
+        <div class="profile-card p-4 h-100 summary-card">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="section-title mb-0">🤝 Community Contributions</h5>
+            <span class="summary-pill">See achievements ↗</span>
+          </div>
+
+          {% if contributions %}
+          <ul class="list-unstyled mb-0 small">
+            {% for c in contributions[:3] %}
+            <li class="mb-1">🏅 {{ c }}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="text-muted mb-0">
+            No contributions yet – share your harvest 🧺
+          </p>
+          {% endif %}
+        </div>
+      </a>
     </div>
   </div>
 
-  <!-- My Gardens Section -->
-  <div class="row mt-5">
+  <!-- MY GARDENS -->
+  <div class="row mt-4">
     <div class="col-12">
       <div class="profile-card p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="section-title mb-0">My Gardens ({{ gardens|length }})</h5>
-          <a href="/garden" class="btn btn-sm btn-success">View All Gardens</a>
+          <h5 class="section-title mb-0">🌼 My Gardens ({{ gardens|length }})</h5>
+          <a href="/garden" class="btn btn-sm btn-success">
+            View All Gardens
+          </a>
         </div>
-        
+
         {% if gardens %}
         <div class="row g-3">
           {% for garden in gardens %}
           <div class="col-md-6 col-lg-4">
             <div class="garden-item">
-              <div class="garden-header">
-                <h6 class="garden-name">{{ garden.name }}</h6>
-                <span class="garden-date">{{ garden.timestamp.strftime('%b %d, %Y') if garden.timestamp else 'Recently' }}</span>
-              </div>
-              <p class="garden-desc text-muted">{{ garden.description or 'No description provided.' }}</p>
-              <div class="garden-meta">
-                <span class="badge bg-light text-dark">
-                  <i class="fas fa-map-marker-alt"></i> {{ garden.location or 'Location not set' }}
-                </span>
-                <span class="badge bg-light text-dark">
-                  <i class="fas fa-seedling"></i> {{ garden.plants or 'Various plants' }}
+              <div class="garden-header d-flex justify-content-between align-items-center">
+                <h6 class="garden-name mb-0">🌱 {{ garden.name }}</h6>
+                <span class="garden-date">
+                  {{ garden.timestamp.strftime('%b %d, %Y') if garden.timestamp else 'Recently' }}
                 </span>
               </div>
-              <div class="garden-grid-info mt-2">
+
+              <p class="garden-desc text-muted mb-2">
+                {{ garden.description or 'No description provided.' }}
+              </p>
+
+              <div class="garden-meta mb-1">
+                <span class="badge bg-light text-dark me-1">
+                  📍 {{ garden.location or 'Location not set' }}
+                </span>
+                <span class="badge bg-light text-dark">
+                  🌿 {{ garden.plants or 'Various plants' }}
+                </span>
+              </div>
+
+              <div class="garden-grid-info mt-1">
                 <small class="text-success">
-                  <i class="fas fa-th"></i> {{ garden.rows }}×{{ garden.cols }} grid
+                  🧩 {{ garden.rows }}×{{ garden.cols }} grid
                 </small>
               </div>
             </div>
@@ -117,55 +180,70 @@
         {% else %}
         <div class="text-center py-4">
           <i class="fas fa-leaf fa-3x text-muted mb-3"></i>
-          <p class="text-muted">You haven't created any gardens yet.</p>
-          <a href="/garden" class="btn btn-success">Create Your First Garden</a>
+          <p class="text-muted mb-3">
+            You haven't created any gardens yet.
+          </p>
+          <a href="/garden" class="btn btn-success">
+            Create Your First Garden 🌱
+          </a>
         </div>
         {% endif %}
       </div>
     </div>
   </div>
 
-  <!-- My Posts Section -->
+  <!-- MY POSTS -->
   <div class="row mt-4">
     <div class="col-12">
       <div class="profile-card p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="section-title mb-0">My Posts ({{ posts|length }})</h5>
-          <a href="/community" class="btn btn-sm btn-success">View Community</a>
+          <h5 class="section-title mb-0">🗣 My Posts ({{ posts|length }})</h5>
+          <a href="/community" class="btn btn-sm btn-success">
+            View Community
+          </a>
         </div>
-        
+
         {% if posts %}
         <div class="posts-timeline">
           {% for post in posts %}
           <div class="post-item">
-            <div class="post-header">
-              <h6 class="post-title">{{ post.title }}</h6>
-              <span class="post-date">{{ post.timestamp.strftime('%b %d, %Y at %I:%M %p') if post.timestamp else 'Recently' }}</span>
+            <div class="post-header d-flex justify-content-between align-items-center">
+              <h6 class="post-title mb-0">
+                🌾 {{ post.title }}
+              </h6>
+              <span class="post-date">
+                {{ post.timestamp.strftime('%b %d, %Y at %I:%M %p') if post.timestamp else 'Recently' }}
+              </span>
             </div>
-            <p class="post-content">{{ post.content[:150] }}{% if post.content|length > 150 %}...{% endif %}</p>
-            <div class="post-meta">
+
+            <p class="post-content mb-2">
+              {{ post.content[:150] }}{% if post.content|length > 150 %}...{% endif %}
+            </p>
+
+            <div class="post-meta mb-1">
               {% if post.food_type %}
-              <span class="badge bg-success">
-                <i class="fas fa-tag"></i> {{ post.food_type }}
+              <span class="badge bg-success me-1">
+                🏷 {{ post.food_type }}
               </span>
               {% endif %}
               {% if post.quantity %}
-              <span class="badge bg-info text-dark">
-                <i class="fas fa-weight"></i> {{ post.quantity }}
+              <span class="badge bg-info text-dark me-1">
+                ⚖️ {{ post.quantity }}
               </span>
               {% endif %}
               {% if post.location %}
               <span class="badge bg-light text-dark">
-                <i class="fas fa-map-marker-alt"></i> {{ post.location }}
+                📍 {{ post.location }}
               </span>
               {% endif %}
             </div>
-            <div class="post-stats mt-2">
-              <span class="stat-item">
-                <i class="fas fa-heart text-danger"></i> {{ post.likes }} likes
+
+            <div class="post-stats mt-1 small">
+              <span class="stat-item me-3">
+                ❤️ {{ post.likes }} likes
               </span>
               <span class="stat-item">
-                <i class="fas fa-reply text-primary"></i> {{ post.replies|length }} replies
+                💬 {{ post.replies|length }} replies
               </span>
             </div>
           </div>
@@ -174,8 +252,12 @@
         {% else %}
         <div class="text-center py-4">
           <i class="fas fa-comments fa-3x text-muted mb-3"></i>
-          <p class="text-muted">You haven't created any posts yet.</p>
-          <a href="/community" class="btn btn-success">Share Your First Post</a>
+          <p class="text-muted mb-3">
+            You haven't created any posts yet.
+          </p>
+          <a href="/community" class="btn btn-success">
+            Share Your First Post 🌻
+          </a>
         </div>
         {% endif %}
       </div>
