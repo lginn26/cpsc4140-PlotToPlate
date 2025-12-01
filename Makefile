@@ -8,7 +8,7 @@ VENV_DIR = $(APP_DIR)/venv
 PYTHON_VENV = $(VENV_DIR)/bin/python
 PIP_VENV = $(VENV_DIR)/bin/pip
 
-.PHONY: help install run clean test migrate setup example
+.PHONY: help install run clean test migrate setup example deploy
 
 # Default target - show help
 help:
@@ -19,6 +19,7 @@ help:
 	@echo "make migrate    - Run database migrations"
 	@echo "make run        - Start the Flask application"
 	@echo "make example    - Populate database with example data for testing"
+	@echo "make deploy     - Test production deployment locally"
 	@echo "make clean      - Remove virtual environment and cache files"
 	@echo "make test       - Run application tests"
 	@echo ""
@@ -129,3 +130,19 @@ example:
 	else \
 		echo "Cancelled."; \
 	fi
+
+# Test production deployment locally
+deploy:
+	@echo "Testing production deployment locally..."
+	@if [ ! -d "$(VENV_DIR)" ]; then \
+		echo "Virtual environment not found. Run 'make setup' first."; \
+		exit 1; \
+	fi
+	@echo "Installing production dependencies..."
+	$(PIP_VENV) install gunicorn
+	@echo ""
+	@echo "🚀 Starting production server..."
+	@echo "Application will be available at: http://localhost:8000"
+	@echo "Press Ctrl+C to stop the server"
+	@echo ""
+	cd $(APP_DIR) && venv/bin/gunicorn --bind 127.0.0.1:8000 wsgi:app
