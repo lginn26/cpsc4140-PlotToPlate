@@ -1,36 +1,25 @@
 #!/bin/bash
 # Render.com build script
 
-set -e  # Exit on any error
-
 echo "🚀 Building FoodShare for production..."
 
-# Install dependencies from root requirements.txt
-echo "📦 Installing dependencies..."
+# Install dependencies
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# Create necessary directories
-echo "📁 Creating directories..."
+# Create directories
 mkdir -p foodshare-app/database
 mkdir -p foodshare-app/static/uploads
 
-# Set up database
-echo "🗄️  Setting up database..."
+# Setup database
 cd foodshare-app
 
 # Run migrations
-echo "Running migrations..."
-python migrate_add_replies.py || echo "Basic migration completed"
+python migrate_add_replies.py
 
-# Run profile migration if needed
-python migrate_profiles.py 2>/dev/null || echo "Profile migration not needed"
-
-# Seed database if requested
-if [ "$SEED_DATABASE" = "true" ]; then
-    echo "🌱 Seeding database..."
-    cd seed_data && python seed_database.py && cd ..
+# Run additional migration if it exists
+if [ -f "migrate_profiles.py" ]; then
+    python migrate_profiles.py
 fi
 
 echo "✅ Build complete!"
-cd ..
