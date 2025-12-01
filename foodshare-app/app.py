@@ -1,9 +1,8 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 import os
-import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 import threading
 from collections import defaultdict
 from werkzeug.utils import secure_filename
@@ -20,59 +19,77 @@ UPLOAD_FOLDER = os.path.join(basedir, 'static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Create upload folder if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 db = SQLAlchemy(app)
 
-# Request deduplication - stores locks for in-progress requests
+# Request deduplication
 request_locks = {}
 locks_mutex = threading.Lock()
-
-# Queue to collect duplicate requests
 request_queues = defaultdict(list)
 queue_mutex = threading.Lock()
 
-def clean_old_requests():
-    """Remove old locks"""
-    pass  # Not needed with locks
 
 def allowed_file(filename):
-    """Check if file extension is allowed"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Database Models
+
+# =========================
+#       DATABASE MODELS
+# =========================
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     bio = db.Column(db.Text)
     location = db.Column(db.String(120))
+    
+    # Enhanced fields for guest mode and tracking
     role = db.Column(db.String(50), default='Garden Volunteer')
     is_guest = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_active = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Simple profile stats fields (optional defaults)
+    plant_count = db.Column(db.Integer, default=0)
+    zone = db.Column(db.String(50), default="Zone 3")
+    friends = db.Column(db.Integer, default=0)
+    streak = db.Column(db.Integer, default=0)
+
     profile_posts = db.relationship('Post', backref='author', lazy=True)
-    
+
     def get_plant_count(self):
         """Calculate real plant count from claimed plots"""
-        return GardenPlot.query.filter_by(user_id=self.id).filter(
-            GardenPlot.status.in_(['mine', 'taken'])
-        ).count()
+        try:
+            return GardenPlot.query.filter_by(user_id=self.id).filter(
+                GardenPlot.status.in_(['mine', 'taken'])
+            ).count()
+        except:
+            return self.plant_count  # Fallback to static field
     
     def get_garden_count(self):
         """Count gardens created by user"""
-        return Garden.query.filter_by(user_id=self.id).count()
+        try:
+            return Garden.query.filter_by(user_id=self.id).count()
+        except:
+            return 0
     
     def get_following_count(self):
         """Count gardens user is following"""
-        return GardenFollower.query.filter_by(user_id=self.id).count()
+        try:
+            return GardenFollower.query.filter_by(user_id=self.id).count()
+        except:
+            return 0
     
     def get_followers_count(self):
         """Count users following this user's gardens"""
-        garden_ids = [g.id for g in Garden.query.filter_by(user_id=self.id).all()]
-        return GardenFollower.query.filter(GardenFollower.garden_id.in_(garden_ids)).count()
-    
+        try:
+            garden_ids = [g.id for g in Garden.query.filter_by(user_id=self.id).all()]
+            return GardenFollower.query.filter(GardenFollower.garden_id.in_(garden_ids)).count()
+        except:
+            return self.friends  # Fallback
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -80,15 +97,27 @@ class User(db.Model):
             'email': self.email,
             'bio': self.bio,
             'location': self.location,
-            'role': self.role,
-            'is_guest': self.is_guest,
-            'created_at': str(self.created_at) if self.created_at else None,
-            'last_active': str(self.last_active) if self.last_active else None,
+            'role': getattr(self, 'role', 'Garden Volunteer'),
+            'is_guest': getattr(self, 'is_guest', False),
+            'created_at': str(self.created_at) if hasattr(self, 'created_at') and self.created_at else None,
+            'last_active': str(self.last_active) if hasattr(self, 'last_active') and self.last_active else None,
             'plant_count': self.get_plant_count(),
+            'zone': self.zone,
+            'friends': self.friends,
+            'streak': self.streak,
             'garden_count': self.get_garden_count(),
             'following_count': self.get_following_count(),
             'followers_count': self.get_followers_count()
         }
+
+
+class FavoritePlant(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(120), nullable=False)
+
+    user = db.relationship('User', backref='favorite_plants')
+
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -97,13 +126,12 @@ class Post(db.Model):
     food_type = db.Column(db.String(100))
     quantity = db.Column(db.String(100))
     location = db.Column(db.String(200))
-    image_url = db.Column(db.String(300))  # Added for image uploads
+    image_url = db.Column(db.String(300))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     timestamp = db.Column(db.DateTime, default=db.func.now())
-    likes = db.Column(db.Integer, default=0)  # Added for like functionality
-    status = db.Column(db.String(20), default='active')  # 'active' or 'resolved'
+    likes = db.Column(db.Integer, default=0)
     replies = db.relationship('Reply', backref='post', lazy=True, cascade='all, delete-orphan')
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -114,12 +142,11 @@ class Post(db.Model):
             'location': self.location,
             'image_url': self.image_url,
             'author': self.author.username,
-            'user_id': self.user_id,
             'likes': self.likes,
             'timestamp': str(self.timestamp),
-            'status': self.status,
             'reply_count': len(self.replies)
         }
+
 
 class Reply(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -128,7 +155,7 @@ class Reply(db.Model):
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
     timestamp = db.Column(db.DateTime, default=db.func.now())
     author = db.relationship('User', backref='replies', lazy=True)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -138,6 +165,7 @@ class Reply(db.Model):
             'post_id': self.post_id,
             'timestamp': str(self.timestamp)
         }
+
 
 class Garden(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -150,7 +178,7 @@ class Garden(db.Model):
     cols = db.Column(db.Integer, default=5)
     timestamp = db.Column(db.DateTime, default=db.func.now())
     plots = db.relationship('GardenPlot', backref='garden', lazy=True, cascade='all, delete-orphan')
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -163,6 +191,7 @@ class Garden(db.Model):
             'timestamp': str(self.timestamp)
         }
 
+
 class GardenPlot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     garden_id = db.Column(db.Integer, db.ForeignKey('garden.id'), nullable=False)
@@ -170,19 +199,13 @@ class GardenPlot(db.Model):
     status = db.Column(db.String(20), default='available')
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     claimed_at = db.Column(db.DateTime, nullable=True)
-    # New plot attributes
-    water_available = db.Column(db.Boolean, default=True)
-    tools_available = db.Column(db.Boolean, default=False)
-    soil_type = db.Column(db.String(50), default='loam')
-    sunlight_level = db.Column(db.String(20), default='full sun')
-    notes = db.Column(db.Text, nullable=True)
-    
+
     def to_dict(self):
         owner_name = None
         if self.user_id:
             user = User.query.get(self.user_id)
             owner_name = user.username if user else None
-            
+
         return {
             'id': self.id,
             'garden_id': self.garden_id,
@@ -190,67 +213,39 @@ class GardenPlot(db.Model):
             'status': self.status,
             'user_id': self.user_id,
             'owner': owner_name,
-            'claimed_at': str(self.claimed_at) if self.claimed_at else None,
-            'water_available': self.water_available,
-            'tools_available': self.tools_available,
-            'soil_type': self.soil_type,
-            'sunlight_level': self.sunlight_level,
-            'notes': self.notes
+            'claimed_at': str(self.claimed_at) if self.claimed_at else None
         }
+
 
 class GardenFollower(db.Model):
     """Model for users following gardens"""
-    __tablename__ = 'garden_follower'
     id = db.Column(db.Integer, primary_key=True)
     garden_id = db.Column(db.Integer, db.ForeignKey('garden.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     followed_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationships
     garden = db.relationship('Garden', backref='followers')
     user = db.relationship('User', backref='following_gardens')
     
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'garden_id': self.garden_id,
-            'garden_name': self.garden.name if self.garden else None,
-            'garden_location': self.garden.location if self.garden else None,
-            'user_id': self.user_id,
-            'username': self.user.username if self.user else None,
-            'followed_at': str(self.followed_at)
-        }
+    # Ensure a user can only follow a garden once
+    __table_args__ = (db.UniqueConstraint('garden_id', 'user_id', name='unique_garden_follower'),)
 
-# Routes
+
+# =========================
+#          ROUTES
+# =========================
+
 @app.route('/')
 def index():
     gardens = Garden.query.all()
     return render_template('index.html', gardens=gardens)
+
 
 @app.route('/community')
 def community():
     posts = Post.query.order_by(Post.timestamp.desc()).all()
     return render_template('community.html', posts=posts)
 
-@app.route('/profile')
-@app.route('/profile/<int:user_id>')
-def profile(user_id=1):
-    user = User.query.get_or_404(user_id)
-    posts = Post.query.filter_by(user_id=user_id).order_by(Post.timestamp.desc()).all()
-    gardens = Garden.query.filter_by(user_id=user_id).order_by(Garden.timestamp.desc()).all()
-    
-    # Calculate real stats
-    plant_count = user.get_plant_count()
-    following_count = user.get_following_count()
-    followers_count = user.get_followers_count()
-    
-    return render_template('profile.html', 
-                         user=user, 
-                         posts=posts, 
-                         gardens=gardens,
-                         plant_count=plant_count,
-                         following_count=following_count,
-                         followers_count=followers_count)
 
 @app.route('/guest')
 def guest_mode():
@@ -272,149 +267,175 @@ def guest_mode():
     # Redirect to guest profile
     return profile(guest_user.id)
 
+
 @app.route('/garden')
 def garden():
     gardens = Garden.query.all()
     return render_template('garden.html', gardens=gardens)
 
-# API Routes
+
+# ---------- PROFILE + NEW SECTIONS ----------
+
+@app.route('/profile')
+@app.route('/profile/<int:user_id>')
+def profile(user_id=1):
+    user = User.query.get_or_404(user_id)
+    posts = Post.query.filter_by(user_id=user_id).order_by(Post.timestamp.desc()).all()
+    gardens = Garden.query.filter_by(user_id=user_id).order_by(Garden.timestamp.desc()).all()
+
+    # Calculate real stats
+    plant_count = user.get_plant_count()
+    following_count = user.get_following_count()
+    followers_count = user.get_followers_count()
+
+    favorite_plants = [f.name for f in FavoritePlant.query.filter_by(user_id=user_id).all()]
+
+    # Simple contributions list (computed)
+    contributions = [
+        f"Created {len(gardens)} garden(s) 🌱",
+        f"Shared {len(posts)} community post(s) 🧺",
+        "Growing the FoodShare community 🤝"
+    ]
+
+    return render_template(
+        'profile.html',
+        user=user,
+        posts=posts,
+        gardens=gardens,
+        plant_count=plant_count,
+        following_count=following_count,
+        followers_count=followers_count,
+        favorite_plants=favorite_plants,
+        contributions=contributions
+    )
+
+
+@app.route('/activity')
+def activity():
+    user_id = 1
+    user = User.query.get_or_404(user_id)
+    gardens = Garden.query.filter_by(user_id=user_id).order_by(Garden.timestamp.desc()).all()
+    return render_template('activity.html', user=user, gardens=gardens)
+
+
+@app.route('/favorites', methods=['GET', 'POST'])
+def favorites():
+    user_id = 1
+    user = User.query.get_or_404(user_id)
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        plant_name = request.form.get('plant_name', '').strip()
+
+        if action == 'add' and plant_name:
+            existing = FavoritePlant.query.filter_by(user_id=user_id, name=plant_name).first()
+            if not existing:
+                db.session.add(FavoritePlant(user_id=user_id, name=plant_name))
+                db.session.commit()
+
+        if action == 'remove' and plant_name:
+            FavoritePlant.query.filter_by(user_id=user_id, name=plant_name).delete()
+            db.session.commit()
+
+        return redirect(url_for('favorites'))
+
+    favorite_plants = [f.name for f in FavoritePlant.query.filter_by(user_id=user_id).all()]
+    return render_template('favorites.html', user=user, favorite_plants=favorite_plants)
+
+
+@app.route('/contributions')
+def contributions():
+    user_id = 1
+    user = User.query.get_or_404(user_id)
+    posts = Post.query.filter_by(user_id=user_id).all()
+    gardens = Garden.query.filter_by(user_id=user_id).all()
+
+    contributions = [
+        f"Created {len(gardens)} garden(s) 🌱",
+        f"Shared {len(posts)} community post(s) 🧺",
+        "Supports neighbors with surplus produce 💚"
+    ]
+    return render_template('contributions.html', user=user, contributions=contributions)
+
+
+@app.route('/garden')
+def garden():
+    gardens = Garden.query.all()
+    return render_template('garden.html', gardens=gardens)
+
+
+# ---------- API: USERS ----------
+
 @app.route('/api/users', methods=['GET', 'POST'])
 def api_users():
     if request.method == 'POST':
         data = request.json
-        user = User(
-            username=data['username'], 
-            email=data['email'],
-            bio=data.get('bio'),
-            location=data.get('location'),
-            role=data.get('role', 'Garden Volunteer')
-        )
+        user = User(username=data['username'], email=data['email'])
         db.session.add(user)
         db.session.commit()
         return jsonify(user.to_dict()), 201
     users = User.query.all()
     return jsonify([u.to_dict() for u in users])
 
-@app.route('/api/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
-def api_user(user_id):
-    user = User.query.get_or_404(user_id)
-    
-    if request.method == 'GET':
-        return jsonify(user.to_dict())
-    
-    elif request.method == 'PUT':
-        # Prevent editing guest user
-        if user.is_guest:
-            return jsonify({'error': 'Cannot edit guest user'}), 403
-        
-        data = request.json
-        if 'username' in data:
-            user.username = data['username']
-        if 'email' in data:
-            user.email = data['email']
-        if 'bio' in data:
-            user.bio = data['bio']
-        if 'location' in data:
-            user.location = data['location']
-        if 'role' in data:
-            user.role = data['role']
-        
-        user.last_active = datetime.utcnow()
-        db.session.commit()
-        return jsonify(user.to_dict())
-    
-    elif request.method == 'DELETE':
-        # Prevent deleting guest user
-        if user.is_guest:
-            return jsonify({'error': 'Cannot delete guest user'}), 403
-        
-        db.session.delete(user)
-        db.session.commit()
-        return jsonify({'message': 'User deleted'}), 200
+
+# ---------- API: POSTS ----------
 
 @app.route('/api/posts', methods=['GET', 'POST'])
 def api_posts():
     if request.method == 'POST':
-        # Get form data (not JSON because we're receiving multipart/form-data with file)
         title = request.form.get('title', '').strip()
         content = request.form.get('content', '').strip()
         food_type = request.form.get('food_type', '')
         quantity = request.form.get('quantity', '')
         location = request.form.get('location', '')
-        user_id = request.form.get('user_id', 1)
-        
-        # Validate required fields
+        user_id = int(request.form.get('user_id', 1))
+
         if not title or not content:
             return jsonify({'error': 'Title and content are required'}), 400
-        
-        # Create a unique key for this post (title + user_id)
+
         request_key = f"post_{user_id}_{title[:50]}"
-        
-        # Add this request to the queue
+
         with queue_mutex:
             request_queues[request_key].append(request.form.to_dict())
-            queue_size = len(request_queues[request_key])
-            print(f"📥 Post request {queue_size} for '{title}' added to queue")
-        
-        # Get or create a lock for this post
         with locks_mutex:
             if request_key not in request_locks:
                 request_locks[request_key] = threading.Lock()
             post_lock = request_locks[request_key]
-        
-        # Try to acquire the lock
+
         lock_acquired = post_lock.acquire(blocking=False)
-        
         if not lock_acquired:
-            # Another request is already processing, wait for it
-            print(f"⏳ Waiting for other post request to finish for '{title}'...")
-            post_lock.acquire()  # Wait for the lock
-            post_lock.release()  # Immediately release it
-            
-            # Find the post that was just created
+            post_lock.acquire()
+            post_lock.release()
+
             recent_post = Post.query.filter_by(
                 title=title,
                 user_id=user_id
             ).order_by(Post.timestamp.desc()).first()
-            
+
             if recent_post:
-                print(f"✅ Returning existing post '{title}'")
                 return jsonify(recent_post.to_dict()), 201
             else:
                 return jsonify({'error': 'Post creation failed'}), 500
-        
+
         try:
-            print(f"🔒 Lock acquired for post '{title}', processing...")
-            
-            # Wait briefly for duplicate requests to arrive
-            time.sleep(0.15)  # 150ms wait
-            
-            # Get all requests from queue and pick the FIRST one (as requested)
+            time.sleep(0.15)
+
             with queue_mutex:
                 all_requests = request_queues[request_key]
                 best_request = all_requests[0] if all_requests else request.form.to_dict()
-                print(f"📊 Processing first of {len(all_requests)} duplicate post requests")
-                # Clear the queue
                 request_queues[request_key] = []
-            
-            # Handle image upload
+
             image_filename = None
             if 'image' in request.files:
                 file = request.files['image']
                 if file and file.filename and allowed_file(file.filename):
-                    # Create a secure filename
                     filename = secure_filename(file.filename)
-                    # Add timestamp to make filename unique
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
-                    filename = timestamp + filename
-                    
-                    # Save file
+                    timestamp_str = datetime.now().strftime('%Y%m%d_%H%M%S_')
+                    filename = timestamp_str + filename
                     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     file.save(filepath)
                     image_filename = filename
-                    print(f"📸 Saved image: {filename}")
-            
-            # Create post using the first request data
+
             post = Post(
                 title=title,
                 content=content,
@@ -426,137 +447,76 @@ def api_posts():
             )
             db.session.add(post)
             db.session.commit()
-            
-            print(f"✅ Post created: {title}")
+
             return jsonify(post.to_dict()), 201
-            
+
         except Exception as e:
             db.session.rollback()
-            print(f"❌ Error creating post: {e}")
             return jsonify({'error': str(e)}), 500
         finally:
             post_lock.release()
-            print(f"🔓 Lock released for post '{title}'")
-    
-    # GET request - return all posts
+
     posts = Post.query.order_by(Post.timestamp.desc()).all()
     return jsonify([p.to_dict() for p in posts])
 
+
 @app.route('/api/posts/<int:post_id>/like', methods=['POST'])
 def like_post(post_id):
-    """Increment the like count for a post"""
     post = Post.query.get_or_404(post_id)
     post.likes += 1
     db.session.commit()
     return jsonify({'likes': post.likes})
 
-@app.route('/api/posts/<int:post_id>/resolve', methods=['POST'])
-def resolve_post(post_id):
-    """Mark a post as resolved"""
-    data = request.json
-    user_id = data.get('user_id', 1)
-    
-    post = Post.query.get_or_404(post_id)
-    
-    # Only the post author can mark as resolved
-    if post.user_id != user_id:
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    post.status = 'resolved'
-    db.session.commit()
-    return jsonify({'status': 'resolved', 'message': 'Post marked as resolved'})
-
-@app.route('/api/posts/<int:post_id>', methods=['DELETE'])
-def delete_post(post_id):
-    """Delete a post and its replies"""
-    data = request.json
-    user_id = data.get('user_id', 1)
-    
-    post = Post.query.get_or_404(post_id)
-    
-    # Only the post author can delete
-    if post.user_id != user_id:
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    # Delete all replies first
-    Reply.query.filter_by(post_id=post_id).delete()
-    
-    # Delete the post
-    db.session.delete(post)
-    db.session.commit()
-    return jsonify({'message': 'Post deleted successfully'})
 
 @app.route('/api/posts/<int:post_id>/replies', methods=['GET', 'POST'])
 def post_replies(post_id):
-    """Get all replies for a post or create a new reply"""
     post = Post.query.get_or_404(post_id)
-    
+
     if request.method == 'POST':
         data = request.json
         content = data.get('content', '').strip()
         user_id = data.get('user_id', 1)
-        
-        # Validate required fields
+
         if not content:
             return jsonify({'error': 'Reply content is required'}), 400
-        
-        # Create a unique key for this reply (content + post_id + user_id)
+
         request_key = f"reply_{post_id}_{user_id}_{content[:50]}"
-        
-        # Add this request to the queue
+
         with queue_mutex:
             request_queues[request_key].append(data)
-            queue_size = len(request_queues[request_key])
-            print(f"📥 Reply request {queue_size} for post {post_id} added to queue")
-        
-        # Get or create a lock for this reply
         with locks_mutex:
             if request_key not in request_locks:
                 request_locks[request_key] = threading.Lock()
             reply_lock = request_locks[request_key]
-        
-        # Try to acquire the lock
+
         lock_acquired = reply_lock.acquire(blocking=False)
-        
         if not lock_acquired:
-            # Another request is already processing, wait for it
-            print(f"⏳ Waiting for other reply request to finish for post {post_id}...")
-            reply_lock.acquire()  # Wait for the lock
-            reply_lock.release()  # Immediately release it
-            
-            # Find the reply that was just created
+            reply_lock.acquire()
+            reply_lock.release()
+
             recent_reply = Reply.query.filter_by(
                 post_id=post_id,
                 user_id=user_id,
                 content=content
             ).order_by(Reply.timestamp.desc()).first()
-            
+
             if recent_reply:
-                print(f"✅ Returning existing reply for post {post_id}")
                 return jsonify(recent_reply.to_dict()), 201
             else:
                 return jsonify({'error': 'Reply creation failed'}), 500
-        
+
         try:
-            print(f"🔒 Lock acquired for reply to post {post_id}, processing...")
-            
-            # Wait briefly for duplicate requests to arrive
-            time.sleep(0.15)  # 150ms wait
-            
-            # Get all requests from queue and pick the last one (most complete)
+            time.sleep(0.15)
+
             with queue_mutex:
                 all_requests = request_queues[request_key]
                 best_request = all_requests[-1] if all_requests else data
-                print(f"📊 Processing last of {len(all_requests)} duplicate reply requests")
-                # Clear the queue
                 request_queues[request_key] = []
-            
-            # Use the best request data
+
             data = best_request
             content = data.get('content', '').strip()
             user_id = data.get('user_id', 1)
-            
-            # Create reply
+
             reply = Reply(
                 content=content,
                 user_id=user_id,
@@ -564,100 +524,68 @@ def post_replies(post_id):
             )
             db.session.add(reply)
             db.session.commit()
-            
-            print(f"✅ Reply created for post {post_id}")
+
             return jsonify(reply.to_dict()), 201
-            
+
         except Exception as e:
             db.session.rollback()
-            print(f"❌ Error creating reply: {e}")
             return jsonify({'error': str(e)}), 500
         finally:
             reply_lock.release()
-            print(f"🔓 Lock released for reply to post {post_id}")
-    
-    # GET request - return all replies for this post
+
     replies = Reply.query.filter_by(post_id=post_id).order_by(Reply.timestamp.asc()).all()
     return jsonify([r.to_dict() for r in replies])
+
+
+# ---------- API: GARDENS ----------
 
 @app.route('/api/gardens', methods=['GET', 'POST'])
 def api_gardens():
     if request.method == 'POST':
         data = request.json
         garden_name = data['name'].strip()
-        
-        # Validate garden name is not empty
+
         if not garden_name:
             return jsonify({'error': 'Garden name is required'}), 400
-        
-        # Create a unique key for this garden
+
         request_key = garden_name.lower()
-        
-        # Add this request to the queue
+
         with queue_mutex:
             request_queues[request_key].append(data)
-            queue_size = len(request_queues[request_key])
-            print(f"📥 Request {queue_size} for '{garden_name}' added to queue")
-        
-        # Get or create a lock for this garden name
         with locks_mutex:
             if request_key not in request_locks:
                 request_locks[request_key] = threading.Lock()
             garden_lock = request_locks[request_key]
-        
-        # Try to acquire the lock
+
         lock_acquired = garden_lock.acquire(blocking=False)
-        
         if not lock_acquired:
-            # Another request is already processing, wait for it
-            print(f"⏳ Waiting for other request to finish for '{garden_name}'...")
-            garden_lock.acquire()  # Wait for the lock
-            garden_lock.release()  # Immediately release it
-            
-            # Check if garden was created
+            garden_lock.acquire()
+            garden_lock.release()
+
             existing_garden = Garden.query.filter_by(name=garden_name).first()
             if existing_garden:
-                print(f"✅ Garden '{garden_name}' already created by another request")
                 return jsonify(existing_garden.to_dict()), 200
             else:
-                print(f"⚠️  Garden '{garden_name}' not found after waiting")
                 return jsonify({'error': 'Garden creation failed'}), 500
-        
+
         try:
-            print(f"🔒 Lock acquired for '{garden_name}', processing...")
-            
-            # Wait briefly for duplicate requests to arrive
-            time.sleep(0.15)  # 150ms wait
-            
-            # Get all requests from queue and pick the best one
+            time.sleep(0.15)
+
             with queue_mutex:
                 all_requests = request_queues[request_key]
-                print(f"📊 Found {len(all_requests)} request(s) in queue")
-                
-                # Pick the request with the most plot_states data
                 best_request = max(all_requests, key=lambda r: len(r.get('plot_states', [])))
-                plot_states_len = len(best_request.get('plot_states', []))
-                print(f"🎯 Selected best request with {plot_states_len} plot states")
-                
-                # Clear the queue
                 del request_queues[request_key]
-            
-            # Use the best request data
+
             data = best_request
-            
-            # Check if garden already exists
+
             existing_garden = Garden.query.filter_by(name=garden_name).first()
             if existing_garden:
-                print(f"⚠️  Garden '{garden_name}' already exists")
                 return jsonify(existing_garden.to_dict()), 200
-            
-            # Create the garden with the best data
+
             rows = data.get('rows', 5)
             cols = data.get('cols', 5)
             plot_states = data.get('plot_states', [])
-            
-            print(f"📊 Creating garden with plot_states length: {len(plot_states)}")
-            
+
             garden = Garden(
                 name=garden_name,
                 description=data.get('description'),
@@ -669,8 +597,7 @@ def api_gardens():
             )
             db.session.add(garden)
             db.session.flush()
-            
-            # Create garden plots
+
             total_plots = rows * cols
             for i in range(total_plots):
                 if plot_states and i < len(plot_states):
@@ -678,118 +605,44 @@ def api_gardens():
                 else:
                     is_null = (i == 0 or i == cols - 1 or i == total_plots - cols or i == total_plots - 1)
                     status = 'null' if is_null else 'available'
-                
+
                 plot = GardenPlot(
                     garden_id=garden.id,
                     plot_index=i,
                     status=status
                 )
                 db.session.add(plot)
-            
+
             db.session.commit()
-            print(f"✅ Successfully created garden '{garden_name}'")
             return jsonify(garden.to_dict()), 201
-            
+
         except Exception as e:
             db.session.rollback()
-            print(f"❌ Error creating garden: {e}")
             return jsonify({'error': 'Failed to create garden'}), 500
         finally:
             garden_lock.release()
-            # Clean up
             with locks_mutex:
                 if request_key in request_locks:
                     del request_locks[request_key]
-            
+
     gardens = Garden.query.all()
     return jsonify([g.to_dict() for g in gardens])
 
-@app.route('/api/gardens/<int:garden_id>/follow', methods=['POST'])
-def follow_garden(garden_id):
-    """Follow a garden"""
-    garden = Garden.query.get_or_404(garden_id)
-    data = request.json
-    user_id = data.get('user_id', 1)
-    
-    # Check if already following
-    existing_follow = GardenFollower.query.filter_by(
-        garden_id=garden_id,
-        user_id=user_id
-    ).first()
-    
-    if existing_follow:
-        return jsonify({'error': 'You are already following this garden'}), 400
-    
-    # Create follow relationship
-    follower = GardenFollower(
-        garden_id=garden_id,
-        user_id=user_id
-    )
-    db.session.add(follower)
-    db.session.commit()
-    
-    return jsonify({
-        'message': 'Successfully followed garden',
-        'follower': follower.to_dict()
-    }), 201
-
-@app.route('/api/gardens/<int:garden_id>/unfollow', methods=['POST'])
-def unfollow_garden(garden_id):
-    """Unfollow a garden"""
-    data = request.json
-    user_id = data.get('user_id', 1)
-    
-    follower = GardenFollower.query.filter_by(
-        garden_id=garden_id,
-        user_id=user_id
-    ).first()
-    
-    if not follower:
-        return jsonify({'error': 'You are not following this garden'}), 400
-    
-    db.session.delete(follower)
-    db.session.commit()
-    
-    return jsonify({'message': 'Successfully unfollowed garden'}), 200
-
-@app.route('/api/following-gardens', methods=['GET'])
-def get_following_gardens():
-    """Get all gardens the user is following"""
-    user_id = request.args.get('user_id', 1, type=int)
-    
-    # Get gardens user is following
-    following = GardenFollower.query.filter_by(user_id=user_id).order_by(GardenFollower.followed_at.desc()).all()
-    
-    return jsonify([follow.to_dict() for follow in following])
-
-@app.route('/api/gardens/<int:garden_id>/is-following', methods=['GET'])
-def check_following(garden_id):
-    """Check if user is following a garden"""
-    user_id = request.args.get('user_id', 1, type=int)
-    
-    follower = GardenFollower.query.filter_by(
-        garden_id=garden_id,
-        user_id=user_id
-    ).first()
-    
-    return jsonify({'is_following': follower is not None})
 
 @app.route('/api/gardens/<int:garden_id>/plots', methods=['GET'])
 def get_garden_plots(garden_id):
     garden = Garden.query.get_or_404(garden_id)
     plots = GardenPlot.query.filter_by(garden_id=garden_id).order_by(GardenPlot.plot_index).all()
-    
-    # Determine status for each plot (for current user - using demo user id=1)
+
     current_user_id = 1
     plots_data = []
-    
+
     for plot in plots:
         plot_dict = plot.to_dict()
-        # Update status to show 'mine' if current user owns it
         if plot.user_id == current_user_id and plot.status == 'taken':
             plot_dict['status'] = 'mine'
         plots_data.append(plot_dict)
-    
+
     return jsonify({
         'garden_id': garden.id,
         'garden_name': garden.name,
@@ -798,60 +651,71 @@ def get_garden_plots(garden_id):
         'plots': plots_data
     })
 
+
 @app.route('/api/gardens/<int:garden_id>/plots/<int:plot_index>/claim', methods=['POST'])
 def claim_plot(garden_id, plot_index):
     data = request.json
     user_id = data.get('user_id', 1)
-    
+
     plot = GardenPlot.query.filter_by(garden_id=garden_id, plot_index=plot_index).first()
-    
+
     if not plot:
         return jsonify({'success': False, 'error': 'Plot not found'}), 404
-    
+
     if plot.status != 'available':
         return jsonify({'success': False, 'error': 'Plot is not available'}), 400
-    
+
     plot.status = 'taken'
     plot.user_id = user_id
     plot.claimed_at = db.func.now()
-    
+
     db.session.commit()
-    
+
     return jsonify({'success': True, 'plot': plot.to_dict()})
+
 
 @app.route('/api/gardens/<int:garden_id>/plots/<int:plot_index>/release', methods=['POST'])
 def release_plot(garden_id, plot_index):
     data = request.json
     user_id = data.get('user_id', 1)
-    
+
     plot = GardenPlot.query.filter_by(garden_id=garden_id, plot_index=plot_index).first()
-    
+
     if not plot:
         return jsonify({'success': False, 'error': 'Plot not found'}), 404
-    
+
     if plot.user_id != user_id:
         return jsonify({'success': False, 'error': 'You do not own this plot'}), 403
-    
+
     plot.status = 'available'
     plot.user_id = None
     plot.claimed_at = None
-    
+
     db.session.commit()
-    
+
     return jsonify({'success': True, 'plot': plot.to_dict()})
 
+
+# =========================
+#        MAIN
+# =========================
+
 if __name__ == '__main__':
-    import os
-    
-    # Only initialize database on the main process, not the reloader
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
         with app.app_context():
             db.create_all()
-            # Create default user if doesn't exist
             if User.query.filter_by(username='demo').first() is None:
-                demo_user = User(username='demo', email='demo@foodshare.com', bio='Demo user', location='Clemson, SC')
+                demo_user = User(
+                    username='demo',
+                    email='demo@foodshare.com',
+                    bio='Helping our community grow one plant at a time.',
+                    location='Clemson, SC',
+                    plant_count=45,
+                    zone='Zone 3',
+                    friends=18,
+                    streak=7
+                )
                 db.session.add(demo_user)
                 db.session.commit()
-    
-    # Run WITHOUT debug mode to prevent duplicate requests
+
     app.run(debug=False, port=5000)
