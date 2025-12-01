@@ -3,77 +3,68 @@
 
 {% block content %}
 <div class="container py-5">
-  <div class="row justify-content-center mb-5">
+    <div class="row justify-content-center mb-5">
     <div class="col-md-6 text-center">
-      <div class="profile-card p-4">
-        <div class="avatar-placeholder mb-3">
+      <div class="card p-4 position-relative">
+        {% if not user.is_guest %}
+        <button class="btn btn-sm btn-outline-success position-absolute top-0 end-0 m-3" 
+                data-bs-toggle="modal" 
+                data-bs-target="#editProfileModal"
+                title="Edit Profile">
+          <i class="fas fa-edit"></i> Edit
+        </button>
+        {% endif %}
+        
+        <div class="avatar-circle mb-3 mx-auto">
           {{ user.username[0] | upper }}
         </div>
         <h3 class="fw-bold">{{ user.username }}</h3>
-        <span class="badge badge-custom mb-2">
-          🌱 {{ user.role or "Garden Volunteer" }}
+        {% if user.is_guest %}
+        <span class="badge bg-secondary mb-2">
+          <i class="fas fa-user"></i> {{ user.role }} (Browse Mode)
         </span>
+        {% else %}
+        <span class="badge bg-success mb-2">
+          <i class="fas fa-seedling"></i> {{ user.role }}
+        </span>
+        {% endif %}
         <p class="text-muted mb-3">
-          “{{ user.bio or 'Helping our community grow one plant at a time.' }}”
+          "{{ user.bio or 'Helping our community grow one plant at a time.' }}"
         </p>
 
         <div class="d-flex justify-content-center gap-4 flex-wrap">
-          <span class="text-success"><i class="bi bi-leaf"></i> {{ user.plant_count or 45 }} plants</span>
-          <span class="text-success"><i class="bi bi-geo-alt"></i> {{ user.zone or "Zone 3" }}</span>
-          <span class="text-success"><i class="bi bi-people"></i> {{ user.friends or 18 }} friends</span>
+          <span class="text-success"><i class="fas fa-seedling"></i> {{ plant_count }} plot{{ 's' if plant_count != 1 else '' }}</span>
+          <span class="text-success"><i class="fas fa-map-marker-alt"></i> {{ user.location or "Unknown Location" }}</span>
+          <span class="text-success"><i class="fas fa-users"></i> {{ followers_count }} follower{{ 's' if followers_count != 1 else '' }}</span>
         </div>
 
-        <!-- 🔥 Gardening Streak Section -->
-        {% if user.streak %}
-        <div class="mt-4 streak-box">
-          🔥 {{ user.streak }}-Day Gardening Streak!
+        {% if user.created_at %}
+        <div class="mt-3">
+          <small class="text-muted">
+            <i class="fas fa-calendar-alt"></i> Member since {{ user.created_at.strftime('%B %Y') if user.created_at else 'Recently' }}
+          </small>
         </div>
         {% endif %}
       </div>
     </div>
   </div>
 
-  <div class="row g-4">
-    <div class="col-md-4">
-      <div class="profile-card p-4 h-100">
-        <h5 class="section-title mb-3">🌻 Recent Activity</h5>
-        {% if activities %}
-        <ul class="list-unstyled mb-0">
-          {% for act in activities %}
-          <li>{{ act }}</li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <p class="text-muted">No recent activity yet.</p>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="profile-card p-4 h-100">
-        <h5 class="section-title mb-3">🍅 Favorite Plants</h5>
-        {% if favorite_plants %}
-        <ul class="fav-plant-list list-unstyled">
-          {% for plant in favorite_plants %}
-          <li><button class="fav-plant-btn">{{ plant }}</button></li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <p class="text-muted">No favorite plants added yet.</p>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="profile-card p-4 h-100">
-        <h5 class="section-title mb-3">🤝 Community Contributions</h5>
-        {% if contributions %}
-          {% for c in contributions %}
-            <p>{{ c }}</p>
-          {% endfor %}
-        {% else %}
-          <p class="text-muted">No contributions recorded yet.</p>
-        {% endif %}
+  <!-- Following Gardens Section -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0"><i class="fas fa-heart text-success"></i> Following Gardens</h5>
+          <button class="btn btn-sm btn-outline-success" onclick="refreshFollowingGardens()">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+        
+        <div id="followingGardensContainer">
+          <div class="text-center py-3">
+            <i class="fas fa-spinner fa-spin"></i> Loading following gardens...
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -81,9 +72,9 @@
   <!-- My Gardens Section -->
   <div class="row mt-5">
     <div class="col-12">
-      <div class="profile-card p-4">
+      <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="section-title mb-0">My Gardens ({{ gardens|length }})</h5>
+          <h5 class="mb-0"><i class="fas fa-leaf text-success"></i> My Gardens ({{ gardens|length }})</h5>
           <a href="/garden" class="btn btn-sm btn-success">View All Gardens</a>
         </div>
         
@@ -91,24 +82,26 @@
         <div class="row g-3">
           {% for garden in gardens %}
           <div class="col-md-6 col-lg-4">
-            <div class="garden-item">
-              <div class="garden-header">
-                <h6 class="garden-name">{{ garden.name }}</h6>
-                <span class="garden-date">{{ garden.timestamp.strftime('%b %d, %Y') if garden.timestamp else 'Recently' }}</span>
-              </div>
-              <p class="garden-desc text-muted">{{ garden.description or 'No description provided.' }}</p>
-              <div class="garden-meta">
-                <span class="badge bg-light text-dark">
-                  <i class="fas fa-map-marker-alt"></i> {{ garden.location or 'Location not set' }}
-                </span>
-                <span class="badge bg-light text-dark">
-                  <i class="fas fa-seedling"></i> {{ garden.plants or 'Various plants' }}
-                </span>
-              </div>
-              <div class="garden-grid-info mt-2">
-                <small class="text-success">
-                  <i class="fas fa-th"></i> {{ garden.rows }}×{{ garden.cols }} grid
-                </small>
+            <div class="card h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <h6 class="fw-bold mb-0">{{ garden.name }}</h6>
+                  <small class="text-muted">{{ garden.timestamp.strftime('%b %d, %Y') if garden.timestamp else 'Recently' }}</small>
+                </div>
+                <p class="text-muted small">{{ garden.description or 'No description provided.' }}</p>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                  <span class="badge bg-light text-dark">
+                    <i class="fas fa-map-marker-alt"></i> {{ garden.location or 'Location not set' }}
+                  </span>
+                  <span class="badge bg-light text-dark">
+                    <i class="fas fa-seedling"></i> {{ garden.plants or 'Various plants' }}
+                  </span>
+                </div>
+                <div class="mt-2">
+                  <small class="text-success">
+                    <i class="fas fa-th"></i> {{ garden.rows }}×{{ garden.cols }} grid
+                  </small>
+                </div>
               </div>
             </div>
           </div>
@@ -128,45 +121,49 @@
   <!-- My Posts Section -->
   <div class="row mt-4">
     <div class="col-12">
-      <div class="profile-card p-4">
+      <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="section-title mb-0">My Posts ({{ posts|length }})</h5>
+          <h5 class="mb-0"><i class="fas fa-comments text-success"></i> My Posts ({{ posts|length }})</h5>
           <a href="/community" class="btn btn-sm btn-success">View Community</a>
         </div>
         
         {% if posts %}
-        <div class="posts-timeline">
+        <div class="row g-3">
           {% for post in posts %}
-          <div class="post-item">
-            <div class="post-header">
-              <h6 class="post-title">{{ post.title }}</h6>
-              <span class="post-date">{{ post.timestamp.strftime('%b %d, %Y at %I:%M %p') if post.timestamp else 'Recently' }}</span>
-            </div>
-            <p class="post-content">{{ post.content[:150] }}{% if post.content|length > 150 %}...{% endif %}</p>
-            <div class="post-meta">
-              {% if post.food_type %}
-              <span class="badge bg-success">
-                <i class="fas fa-tag"></i> {{ post.food_type }}
-              </span>
-              {% endif %}
-              {% if post.quantity %}
-              <span class="badge bg-info text-dark">
-                <i class="fas fa-weight"></i> {{ post.quantity }}
-              </span>
-              {% endif %}
-              {% if post.location %}
-              <span class="badge bg-light text-dark">
-                <i class="fas fa-map-marker-alt"></i> {{ post.location }}
-              </span>
-              {% endif %}
-            </div>
-            <div class="post-stats mt-2">
-              <span class="stat-item">
-                <i class="fas fa-heart text-danger"></i> {{ post.likes }} likes
-              </span>
-              <span class="stat-item">
-                <i class="fas fa-reply text-primary"></i> {{ post.replies|length }} replies
-              </span>
+          <div class="col-12">
+            <div class="card">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <h6 class="fw-bold mb-0">{{ post.title }}</h6>
+                  <small class="text-muted">{{ post.timestamp.strftime('%b %d, %Y at %I:%M %p') if post.timestamp else 'Recently' }}</small>
+                </div>
+                <p class="text-muted">{{ post.content[:150] }}{% if post.content|length > 150 %}...{% endif %}</p>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                  {% if post.food_type %}
+                  <span class="badge bg-success">
+                    <i class="fas fa-tag"></i> {{ post.food_type }}
+                  </span>
+                  {% endif %}
+                  {% if post.quantity %}
+                  <span class="badge bg-info text-dark">
+                    <i class="fas fa-weight"></i> {{ post.quantity }}
+                  </span>
+                  {% endif %}
+                  {% if post.location %}
+                  <span class="badge bg-light text-dark">
+                    <i class="fas fa-map-marker-alt"></i> {{ post.location }}
+                  </span>
+                  {% endif %}
+                </div>
+                <div class="d-flex gap-3">
+                  <small class="text-muted">
+                    <i class="fas fa-heart text-danger"></i> {{ post.likes }} likes
+                  </small>
+                  <small class="text-muted">
+                    <i class="fas fa-reply text-primary"></i> {{ post.replies|length }} replies
+                  </small>
+                </div>
+              </div>
             </div>
           </div>
           {% endfor %}
@@ -182,8 +179,177 @@
     </div>
   </div>
 
-  <footer class="mt-5 text-center text-muted">
-    🌿 FoodShare © 2025 — Growing Together 🌻
-  </footer>
 </div>
+
+<script>
+// Load following gardens when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadFollowingGardens();
+});
+
+function loadFollowingGardens() {
+    fetch('/api/following-gardens?user_id=1')
+        .then(response => response.json())
+        .then(gardens => {
+            displayFollowingGardens(gardens);
+        })
+        .catch(error => {
+            console.error('Error loading following gardens:', error);
+            document.getElementById('followingGardensContainer').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Failed to load following gardens
+                </div>
+            `;
+        });
+}
+
+function displayFollowingGardens(gardens) {
+    const container = document.getElementById('followingGardensContainer');
+    
+    if (gardens.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-heart fa-3x text-muted mb-3"></i>
+                <p class="text-muted">You're not following any gardens yet.</p>
+                <small class="text-muted">Visit the Gardens page to follow gardens!</small>
+            </div>
+        `;
+        return;
+    }
+    
+    const html = gardens.map(garden => {
+        const date = new Date(garden.followed_at).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+        return `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <i class="fas fa-leaf text-success"></i> ${garden.garden_name}
+                            </h6>
+                            ${garden.garden_location ? `
+                                <p class="text-muted mb-2 small">
+                                    <i class="fas fa-map-marker-alt"></i> ${garden.garden_location}
+                                </p>
+                            ` : ''}
+                            <small class="text-muted">
+                                <i class="fas fa-calendar"></i> Following since ${date}
+                            </small>
+                        </div>
+                        <div>
+                            <a href="/garden" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = html;
+}
+
+function refreshFollowingGardens() {
+    document.getElementById('followingGardensContainer').innerHTML = `
+        <div class="text-center py-3">
+            <i class="fas fa-spinner fa-spin"></i> Refreshing...
+        </div>
+    `;
+    loadFollowingGardens();
+}
+
+// Edit profile functionality
+function saveProfile() {
+    const userId = {{ user.id }};
+    const data = {
+        username: document.getElementById('editUsername').value,
+        email: document.getElementById('editEmail').value,
+        bio: document.getElementById('editBio').value,
+        location: document.getElementById('editLocation').value,
+        role: document.getElementById('editRole').value
+    };
+    
+    fetch(`/api/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.error) {
+            alert('Error: ' + result.error);
+        } else {
+            // Reload page to show updated profile
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error updating profile:', error);
+        alert('Failed to update profile. Please try again.');
+    });
+}
+</script>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" style="background-color: #1B5E3F; color: white;">
+        <h5 class="modal-title" id="editProfileModalLabel" style="color: white;">
+          <i class="fas fa-user-edit"></i> Edit Profile
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editProfileForm">
+          <div class="mb-3">
+            <label for="editUsername" class="form-label">Username</label>
+            <input type="text" class="form-control" id="editUsername" value="{{ user.username }}" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="editEmail" class="form-label">Email</label>
+            <input type="email" class="form-control" id="editEmail" value="{{ user.email }}" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="editBio" class="form-label">Bio</label>
+            <textarea class="form-control" id="editBio" rows="3">{{ user.bio or '' }}</textarea>
+            <small class="text-muted">Tell the community about yourself</small>
+          </div>
+          
+          <div class="mb-3">
+            <label for="editLocation" class="form-label">Location</label>
+            <input type="text" class="form-control" id="editLocation" value="{{ user.location or '' }}" placeholder="e.g., Zone 3, Downtown Garden">
+          </div>
+          
+          <div class="mb-3">
+            <label for="editRole" class="form-label">Role</label>
+            <select class="form-select" id="editRole">
+              <option value="Garden Volunteer" {% if user.role == 'Garden Volunteer' %}selected{% endif %}>Garden Volunteer</option>
+              <option value="Community Gardener" {% if user.role == 'Community Gardener' %}selected{% endif %}>Community Gardener</option>
+              <option value="Garden Coordinator" {% if user.role == 'Garden Coordinator' %}selected{% endif %}>Garden Coordinator</option>
+              <option value="Master Gardener" {% if user.role == 'Master Gardener' %}selected{% endif %}>Master Gardener</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" onclick="saveProfile()" data-bs-dismiss="modal">
+          <i class="fas fa-save"></i> Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}

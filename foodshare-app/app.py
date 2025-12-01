@@ -48,7 +48,30 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     bio = db.Column(db.Text)
     location = db.Column(db.String(120))
+    role = db.Column(db.String(50), default='Garden Volunteer')
+    is_guest = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_active = db.Column(db.DateTime, default=datetime.utcnow)
     profile_posts = db.relationship('Post', backref='author', lazy=True)
+    
+    def get_plant_count(self):
+        """Calculate real plant count from claimed plots"""
+        return GardenPlot.query.filter_by(user_id=self.id).filter(
+            GardenPlot.status.in_(['mine', 'taken'])
+        ).count()
+    
+    def get_garden_count(self):
+        """Count gardens created by user"""
+        return Garden.query.filter_by(user_id=self.id).count()
+    
+    def get_following_count(self):
+        """Count gardens user is following"""
+        return GardenFollower.query.filter_by(user_id=self.id).count()
+    
+    def get_followers_count(self):
+        """Count users following this user's gardens"""
+        garden_ids = [g.id for g in Garden.query.filter_by(user_id=self.id).all()]
+        return GardenFollower.query.filter(GardenFollower.garden_id.in_(garden_ids)).count()
     
     def to_dict(self):
         return {
@@ -56,7 +79,15 @@ class User(db.Model):
             'username': self.username,
             'email': self.email,
             'bio': self.bio,
-            'location': self.location
+            'location': self.location,
+            'role': self.role,
+            'is_guest': self.is_guest,
+            'created_at': str(self.created_at) if self.created_at else None,
+            'last_active': str(self.last_active) if self.last_active else None,
+            'plant_count': self.get_plant_count(),
+            'garden_count': self.get_garden_count(),
+            'following_count': self.get_following_count(),
+            'followers_count': self.get_followers_count()
         }
 
 class Post(db.Model):
@@ -70,6 +101,7 @@ class Post(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     timestamp = db.Column(db.DateTime, default=db.func.now())
     likes = db.Column(db.Integer, default=0)  # Added for like functionality
+    status = db.Column(db.String(20), default='active')  # 'active' or 'resolved'
     replies = db.relationship('Reply', backref='post', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
@@ -82,8 +114,10 @@ class Post(db.Model):
             'location': self.location,
             'image_url': self.image_url,
             'author': self.author.username,
+            'user_id': self.user_id,
             'likes': self.likes,
             'timestamp': str(self.timestamp),
+            'status': self.status,
             'reply_count': len(self.replies)
         }
 
@@ -136,6 +170,12 @@ class GardenPlot(db.Model):
     status = db.Column(db.String(20), default='available')
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     claimed_at = db.Column(db.DateTime, nullable=True)
+    # New plot attributes
+    water_available = db.Column(db.Boolean, default=True)
+    tools_available = db.Column(db.Boolean, default=False)
+    soil_type = db.Column(db.String(50), default='loam')
+    sunlight_level = db.Column(db.String(20), default='full sun')
+    notes = db.Column(db.Text, nullable=True)
     
     def to_dict(self):
         owner_name = None
@@ -150,7 +190,35 @@ class GardenPlot(db.Model):
             'status': self.status,
             'user_id': self.user_id,
             'owner': owner_name,
-            'claimed_at': str(self.claimed_at) if self.claimed_at else None
+            'claimed_at': str(self.claimed_at) if self.claimed_at else None,
+            'water_available': self.water_available,
+            'tools_available': self.tools_available,
+            'soil_type': self.soil_type,
+            'sunlight_level': self.sunlight_level,
+            'notes': self.notes
+        }
+
+class GardenFollower(db.Model):
+    """Model for users following gardens"""
+    __tablename__ = 'garden_follower'
+    id = db.Column(db.Integer, primary_key=True)
+    garden_id = db.Column(db.Integer, db.ForeignKey('garden.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    followed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    garden = db.relationship('Garden', backref='followers')
+    user = db.relationship('User', backref='following_gardens')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'garden_id': self.garden_id,
+            'garden_name': self.garden.name if self.garden else None,
+            'garden_location': self.garden.location if self.garden else None,
+            'user_id': self.user_id,
+            'username': self.user.username if self.user else None,
+            'followed_at': str(self.followed_at)
         }
 
 # Routes
@@ -168,9 +236,41 @@ def community():
 @app.route('/profile/<int:user_id>')
 def profile(user_id=1):
     user = User.query.get_or_404(user_id)
-    posts = Post.query.filter_by(user_id=user_id).all()
-    gardens = Garden.query.filter_by(user_id=user_id).all()
-    return render_template('profile.html', user=user, posts=posts, gardens=gardens)
+    posts = Post.query.filter_by(user_id=user_id).order_by(Post.timestamp.desc()).all()
+    gardens = Garden.query.filter_by(user_id=user_id).order_by(Garden.timestamp.desc()).all()
+    
+    # Calculate real stats
+    plant_count = user.get_plant_count()
+    following_count = user.get_following_count()
+    followers_count = user.get_followers_count()
+    
+    return render_template('profile.html', 
+                         user=user, 
+                         posts=posts, 
+                         gardens=gardens,
+                         plant_count=plant_count,
+                         following_count=following_count,
+                         followers_count=followers_count)
+
+@app.route('/guest')
+def guest_mode():
+    """Guest/Kiosk mode - browse-only access"""
+    guest_user = User.query.filter_by(username='guest').first()
+    if not guest_user:
+        # Create guest user if it doesn't exist
+        guest_user = User(
+            username='guest',
+            email='guest@foodshare.local',
+            bio='Browse as a guest - kiosk mode',
+            location='Community Garden',
+            role='Guest',
+            is_guest=True
+        )
+        db.session.add(guest_user)
+        db.session.commit()
+    
+    # Redirect to guest profile
+    return profile(guest_user.id)
 
 @app.route('/garden')
 def garden():
@@ -182,12 +282,55 @@ def garden():
 def api_users():
     if request.method == 'POST':
         data = request.json
-        user = User(username=data['username'], email=data['email'])
+        user = User(
+            username=data['username'], 
+            email=data['email'],
+            bio=data.get('bio'),
+            location=data.get('location'),
+            role=data.get('role', 'Garden Volunteer')
+        )
         db.session.add(user)
         db.session.commit()
         return jsonify(user.to_dict()), 201
     users = User.query.all()
     return jsonify([u.to_dict() for u in users])
+
+@app.route('/api/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
+def api_user(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    if request.method == 'GET':
+        return jsonify(user.to_dict())
+    
+    elif request.method == 'PUT':
+        # Prevent editing guest user
+        if user.is_guest:
+            return jsonify({'error': 'Cannot edit guest user'}), 403
+        
+        data = request.json
+        if 'username' in data:
+            user.username = data['username']
+        if 'email' in data:
+            user.email = data['email']
+        if 'bio' in data:
+            user.bio = data['bio']
+        if 'location' in data:
+            user.location = data['location']
+        if 'role' in data:
+            user.role = data['role']
+        
+        user.last_active = datetime.utcnow()
+        db.session.commit()
+        return jsonify(user.to_dict())
+    
+    elif request.method == 'DELETE':
+        # Prevent deleting guest user
+        if user.is_guest:
+            return jsonify({'error': 'Cannot delete guest user'}), 403
+        
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({'message': 'User deleted'}), 200
 
 @app.route('/api/posts', methods=['GET', 'POST'])
 def api_posts():
@@ -306,6 +449,42 @@ def like_post(post_id):
     post.likes += 1
     db.session.commit()
     return jsonify({'likes': post.likes})
+
+@app.route('/api/posts/<int:post_id>/resolve', methods=['POST'])
+def resolve_post(post_id):
+    """Mark a post as resolved"""
+    data = request.json
+    user_id = data.get('user_id', 1)
+    
+    post = Post.query.get_or_404(post_id)
+    
+    # Only the post author can mark as resolved
+    if post.user_id != user_id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    post.status = 'resolved'
+    db.session.commit()
+    return jsonify({'status': 'resolved', 'message': 'Post marked as resolved'})
+
+@app.route('/api/posts/<int:post_id>', methods=['DELETE'])
+def delete_post(post_id):
+    """Delete a post and its replies"""
+    data = request.json
+    user_id = data.get('user_id', 1)
+    
+    post = Post.query.get_or_404(post_id)
+    
+    # Only the post author can delete
+    if post.user_id != user_id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Delete all replies first
+    Reply.query.filter_by(post_id=post_id).delete()
+    
+    # Delete the post
+    db.session.delete(post)
+    db.session.commit()
+    return jsonify({'message': 'Post deleted successfully'})
 
 @app.route('/api/posts/<int:post_id>/replies', methods=['GET', 'POST'])
 def post_replies(post_id):
@@ -524,6 +703,76 @@ def api_gardens():
             
     gardens = Garden.query.all()
     return jsonify([g.to_dict() for g in gardens])
+
+@app.route('/api/gardens/<int:garden_id>/follow', methods=['POST'])
+def follow_garden(garden_id):
+    """Follow a garden"""
+    garden = Garden.query.get_or_404(garden_id)
+    data = request.json
+    user_id = data.get('user_id', 1)
+    
+    # Check if already following
+    existing_follow = GardenFollower.query.filter_by(
+        garden_id=garden_id,
+        user_id=user_id
+    ).first()
+    
+    if existing_follow:
+        return jsonify({'error': 'You are already following this garden'}), 400
+    
+    # Create follow relationship
+    follower = GardenFollower(
+        garden_id=garden_id,
+        user_id=user_id
+    )
+    db.session.add(follower)
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Successfully followed garden',
+        'follower': follower.to_dict()
+    }), 201
+
+@app.route('/api/gardens/<int:garden_id>/unfollow', methods=['POST'])
+def unfollow_garden(garden_id):
+    """Unfollow a garden"""
+    data = request.json
+    user_id = data.get('user_id', 1)
+    
+    follower = GardenFollower.query.filter_by(
+        garden_id=garden_id,
+        user_id=user_id
+    ).first()
+    
+    if not follower:
+        return jsonify({'error': 'You are not following this garden'}), 400
+    
+    db.session.delete(follower)
+    db.session.commit()
+    
+    return jsonify({'message': 'Successfully unfollowed garden'}), 200
+
+@app.route('/api/following-gardens', methods=['GET'])
+def get_following_gardens():
+    """Get all gardens the user is following"""
+    user_id = request.args.get('user_id', 1, type=int)
+    
+    # Get gardens user is following
+    following = GardenFollower.query.filter_by(user_id=user_id).order_by(GardenFollower.followed_at.desc()).all()
+    
+    return jsonify([follow.to_dict() for follow in following])
+
+@app.route('/api/gardens/<int:garden_id>/is-following', methods=['GET'])
+def check_following(garden_id):
+    """Check if user is following a garden"""
+    user_id = request.args.get('user_id', 1, type=int)
+    
+    follower = GardenFollower.query.filter_by(
+        garden_id=garden_id,
+        user_id=user_id
+    ).first()
+    
+    return jsonify({'is_following': follower is not None})
 
 @app.route('/api/gardens/<int:garden_id>/plots', methods=['GET'])
 def get_garden_plots(garden_id):

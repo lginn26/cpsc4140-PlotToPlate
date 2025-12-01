@@ -46,9 +46,14 @@
                                 <i class="fas fa-sprout"></i> <strong>Plants:</strong> {{ garden.plants }}
                             </small>
                         </div>
-                        <button class="btn btn-outline-success btn-sm" onclick="viewGardenPlots({{ garden.id }}, '{{ garden.name }}')">
-                            <i class="fas fa-th"></i> View Garden Plots
-                        </button>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-success btn-sm flex-grow-1" onclick="viewGardenPlots({{ garden.id }}, '{{ garden.name }}')">
+                                <i class="fas fa-th"></i> View Plots
+                            </button>
+                            <button class="btn btn-success btn-sm follow-btn" id="follow-btn-{{ garden.id }}" onclick="toggleFollowGarden({{ garden.id }}, '{{ garden.name }}')">
+                                <i class="fas fa-user-plus"></i> Follow
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -117,14 +122,22 @@
                                 <i class="fas fa-paint-brush"></i> Design Your Garden Layout
                             </h6>
                             <p class="small text-muted mb-3">
-                                Click on plots to toggle them between available (green) and unavailable (gray). Unavailable plots are non-plantable areas like pathways or structures.
+                                Click on plots to cycle through different types: Available (green), Water Source (blue), Tool Hub (orange), or Unavailable (gray).
                             </p>
                             
                             <!-- Legend for designer -->
-                            <div class="mb-3 d-flex gap-3">
+                            <div class="mb-3 d-flex flex-wrap gap-3">
                                 <div>
                                     <span class="plot-legend" style="background-color: #90EE90;"></span>
                                     <small>Available</small>
+                                </div>
+                                <div>
+                                    <span class="plot-legend" style="background-color: #87CEEB;"></span>
+                                    <small>Water Source</small>
+                                </div>
+                                <div>
+                                    <span class="plot-legend" style="background-color: #FFA500;"></span>
+                                    <small>Tool Hub</small>
                                 </div>
                                 <div>
                                     <span class="plot-legend" style="background-color: #D3D3D3;"></span>
@@ -152,12 +165,69 @@
     </div>
 </div>
 
+<!-- Plot Details Modal -->
+<div class="modal fade" id="plotDetailsModal" tabindex="-1" style="z-index: 1060;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #1B5E3F; color: white;">
+                <h5 class="modal-title" style="color: white;">
+                    <i class="fas fa-info-circle"></i> Plot Details: <span id="detailPlotNumber"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <h6 class="text-muted">Status</h6>
+                    <p id="detailPlotStatus" class="mb-0"></p>
+                </div>
+                
+                <div class="mb-3" id="detailOwnerSection" style="display: none;">
+                    <h6 class="text-muted">Owner</h6>
+                    <p id="detailPlotOwner" class="mb-0"></p>
+                </div>
+                
+                <div class="mb-3" id="detailWaterSection" style="display: none;">
+                    <h6 class="text-muted"><i class="fas fa-tint"></i> Water Available</h6>
+                    <p id="detailPlotWater" class="mb-0"></p>
+                </div>
+                
+                <div class="mb-3" id="detailToolsSection" style="display: none;">
+                    <h6 class="text-muted"><i class="fas fa-tools"></i> Tools Available</h6>
+                    <p id="detailPlotTools" class="mb-0"></p>
+                </div>
+                
+                <div class="mb-3" id="detailSoilSection" style="display: none;">
+                    <h6 class="text-muted"><i class="fas fa-mountain"></i> Soil Type</h6>
+                    <p id="detailPlotSoil" class="mb-0"></p>
+                </div>
+                
+                <div class="mb-3" id="detailSunlightSection" style="display: none;">
+                    <h6 class="text-muted"><i class="fas fa-sun"></i> Sunlight Level</h6>
+                    <p id="detailPlotSunlight" class="mb-0"></p>
+                </div>
+                
+                <div class="mb-3" id="detailNotesSection" style="display: none;">
+                    <h6 class="text-muted"><i class="fas fa-sticky-note"></i> Notes</h6>
+                    <p id="detailPlotNotes" class="mb-0"></p>
+                </div>
+                
+                <div id="detailPlotActions" class="mt-4"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Garden Plots Modal -->
 <div class="modal fade" id="gardenPlotsModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title" id="gardenPlotsTitle">
+            <div class="modal-header" style="background-color: #1B5E3F; color: white;">
+                <h5 class="modal-title" id="gardenPlotsTitle" style="color: white;">
                     <i class="fas fa-th"></i> Garden Plots
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -170,6 +240,14 @@
                         <div>
                             <span class="plot-legend" style="background-color: #90EE90;"></span>
                             <small>Available</small>
+                        </div>
+                        <div>
+                            <span class="plot-legend" style="background-color: #87CEEB;"></span>
+                            <small>Water Source</small>
+                        </div>
+                        <div>
+                            <span class="plot-legend" style="background-color: #FFA500;"></span>
+                            <small>Tool Hub</small>
                         </div>
                         <div>
                             <span class="plot-legend" style="background-color: #FFB6C1;"></span>
@@ -187,7 +265,22 @@
                 </div>
 
                 <!-- Garden Grid -->
-                <div id="gardenGrid" class="garden-grid mx-auto"></div>
+                <div class="position-relative">
+                    <!-- Compass Rose -->
+                    <div class="compass-rose">
+                        <div class="compass-direction compass-north">N</div>
+                        <div class="compass-direction compass-east">E</div>
+                        <div class="compass-direction compass-south">S</div>
+                        <div class="compass-direction compass-west">W</div>
+                    </div>
+                    
+                    <div id="gardenGrid" class="garden-grid mx-auto"></div>
+                    
+                    <!-- Scale Indicator -->
+                    <div class="scale-indicator mt-3 text-center">
+                        <i class="fas fa-ruler-horizontal"></i> <small class="text-muted">Each plot = 10ft × 10ft</small>
+                    </div>
+                </div>
                 
                 <!-- Selected Plot Info -->
                 <div id="plotInfo" class="mt-4 p-3 bg-light rounded" style="display: none;">
@@ -201,6 +294,15 @@
 </div>
 
 <style>
+/* Modal z-index fix for nested modals */
+#plotDetailsModal {
+    z-index: 1060 !important;
+}
+
+#plotDetailsModal ~ .modal-backdrop {
+    z-index: 1055 !important;
+}
+
 .garden-grid {
     display: inline-grid;
     gap: 8px;
@@ -248,10 +350,94 @@
     background-color: #FFB6C1;
 }
 
+/* Compass Rose Styles */
+.compass-rose {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 60px;
+    height: 60px;
+    z-index: 10;
+}
+
+.compass-direction {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 2px solid #28a745;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 0.7rem;
+    color: #28a745;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.compass-north {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.compass-east {
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+}
+
+.compass-south {
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.compass-west {
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+}
+
+/* Scale Indicator */
+.scale-indicator {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
 .plot-null {
     background-color: #D3D3D3;
     cursor: not-allowed;
     opacity: 0.5;
+}
+
+/* Water Source Plots */
+.plot-water {
+    background-color: #87CEEB;
+    cursor: pointer;
+}
+
+.plot-water::after {
+    content: '\f043';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    color: #1E90FF;
+    font-size: 1.5rem;
+}
+
+/* Tool Hub Plots */
+.plot-tools {
+    background-color: #FFA500;
+    cursor: pointer;
+}
+
+.plot-tools::after {
+    content: '\f0ad';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    color: #FF8C00;
+    font-size: 1.5rem;
 }
 
 /* Designer mode - null plots should be clickable */
@@ -344,6 +530,12 @@ function renderDesignerGrid(rows, cols) {
         if (status === 'available') {
             plotDiv.classList.add('plot-available');
             plotDiv.textContent = `#${i + 1}`;
+        } else if (status === 'water') {
+            plotDiv.classList.add('plot-water');
+            // Icon added via CSS
+        } else if (status === 'tools') {
+            plotDiv.classList.add('plot-tools');
+            // Icon added via CSS
         } else {
             plotDiv.classList.add('plot-null');
             plotDiv.innerHTML = '<i class="fas fa-times"></i>';
@@ -356,9 +548,15 @@ function renderDesignerGrid(rows, cols) {
     }
 }
 
-// Toggle plot availability in designer
+// Toggle plot type in designer (cycles through: available -> water -> tools -> null -> available)
 function toggleDesignerPlot(index) {
-    if (designerPlotStates[index] === 'available') {
+    const currentState = designerPlotStates[index];
+    
+    if (currentState === 'available') {
+        designerPlotStates[index] = 'water';
+    } else if (currentState === 'water') {
+        designerPlotStates[index] = 'tools';
+    } else if (currentState === 'tools') {
         designerPlotStates[index] = 'null';
     } else {
         designerPlotStates[index] = 'available';
@@ -444,6 +642,14 @@ function renderGardenGrid(data) {
         if (plot.status === 'null') {
             plotDiv.classList.add('plot-null');
             plotDiv.textContent = '';
+        } else if (plot.status === 'water') {
+            plotDiv.classList.add('plot-water');
+            // Icon shown via CSS
+            plotDiv.onclick = () => selectPlot(i, plot);
+        } else if (plot.status === 'tools') {
+            plotDiv.classList.add('plot-tools');
+            // Icon shown via CSS
+            plotDiv.onclick = () => selectPlot(i, plot);
         } else if (plot.status === 'available') {
             plotDiv.classList.add('plot-available');
             plotDiv.textContent = `#${i + 1}`;
@@ -471,39 +677,141 @@ function selectPlot(index, plot) {
     // Add selection to clicked plot
     document.querySelector(`[data-index="${index}"]`).classList.add('selected');
     
-    // Show plot info
-    const plotInfo = document.getElementById('plotInfo');
-    const plotActions = document.getElementById('plotActions');
+    // Show plot details modal
+    showPlotDetailsModal(index, plot);
+}
+
+// Show plot details in a modal
+function showPlotDetailsModal(index, plot) {
+    // Set plot number
+    document.getElementById('detailPlotNumber').textContent = `#${index + 1}`;
     
-    document.getElementById('selectedPlotId').textContent = `#${index + 1}`;
-    document.getElementById('plotStatus').textContent = plot.status.charAt(0).toUpperCase() + plot.status.slice(1);
+    // Set status with special handling for water and tools
+    let statusText = plot.status.charAt(0).toUpperCase() + plot.status.slice(1);
+    if (plot.status === 'water') {
+        statusText = 'Water Source';
+    } else if (plot.status === 'tools') {
+        statusText = 'Tool Hub';
+    }
+    document.getElementById('detailPlotStatus').textContent = statusText;
     
-    plotInfo.style.display = 'block';
+    // Show/hide owner section
+    const ownerSection = document.getElementById('detailOwnerSection');
+    if (plot.status === 'mine' || plot.status === 'taken') {
+        const ownerText = plot.status === 'mine' ? 'You' : (plot.owner || 'Another gardener');
+        document.getElementById('detailPlotOwner').textContent = ownerText;
+        ownerSection.style.display = 'block';
+    } else {
+        ownerSection.style.display = 'none';
+    }
+    
+    // Show/hide plot attributes sections (only for claimed plots)
+    const showAttributes = (plot.status === 'mine' || plot.status === 'taken');
+    
+    const waterSection = document.getElementById('detailWaterSection');
+    const toolsSection = document.getElementById('detailToolsSection');
+    const soilSection = document.getElementById('detailSoilSection');
+    const sunlightSection = document.getElementById('detailSunlightSection');
+    const notesSection = document.getElementById('detailNotesSection');
+    
+    if (showAttributes) {
+        // Water available
+        if (plot.water_available !== null && plot.water_available !== undefined) {
+            document.getElementById('detailPlotWater').textContent = plot.water_available ? 'Yes' : 'No';
+            waterSection.style.display = 'block';
+        } else {
+            waterSection.style.display = 'none';
+        }
+        
+        // Tools available
+        if (plot.tools_available !== null && plot.tools_available !== undefined) {
+            document.getElementById('detailPlotTools').textContent = plot.tools_available ? 'Yes' : 'No';
+            toolsSection.style.display = 'block';
+        } else {
+            toolsSection.style.display = 'none';
+        }
+        
+        // Soil type
+        if (plot.soil_type) {
+            document.getElementById('detailPlotSoil').textContent = plot.soil_type;
+            soilSection.style.display = 'block';
+        } else {
+            soilSection.style.display = 'none';
+        }
+        
+        // Sunlight level
+        if (plot.sunlight_level) {
+            document.getElementById('detailPlotSunlight').textContent = plot.sunlight_level;
+            sunlightSection.style.display = 'block';
+        } else {
+            sunlightSection.style.display = 'none';
+        }
+        
+        // Notes
+        if (plot.notes) {
+            document.getElementById('detailPlotNotes').textContent = plot.notes;
+            notesSection.style.display = 'block';
+        } else {
+            notesSection.style.display = 'none';
+        }
+    } else {
+        waterSection.style.display = 'none';
+        toolsSection.style.display = 'none';
+        soilSection.style.display = 'none';
+        sunlightSection.style.display = 'none';
+        notesSection.style.display = 'none';
+    }
     
     // Show appropriate actions
+    const plotActions = document.getElementById('detailPlotActions');
     if (plot.status === 'available') {
         plotActions.innerHTML = `
-            <button class="btn btn-success" onclick="claimPlot(${index})">
+            <button class="btn btn-success w-100" onclick="claimPlot(${index})">
                 <i class="fas fa-check"></i> Claim This Plot
             </button>
         `;
     } else if (plot.status === 'mine') {
         plotActions.innerHTML = `
-            <button class="btn btn-danger" onclick="releasePlot(${index})">
+            <button class="btn btn-danger w-100" onclick="releasePlot(${index})">
                 <i class="fas fa-times"></i> Release This Plot
             </button>
         `;
+    } else if (plot.status === 'water') {
+        plotActions.innerHTML = '<p class="text-info text-center mb-0"><i class="fas fa-tint"></i> This is a water source for the garden.</p>';
+    } else if (plot.status === 'tools') {
+        plotActions.innerHTML = '<p class="text-warning text-center mb-0"><i class="fas fa-tools"></i> This is a tool hub where gardening tools are stored.</p>';
     } else if (plot.status === 'taken') {
-        plotActions.innerHTML = `
-            <p class="text-muted mb-0">This plot is taken by ${plot.owner || 'another gardener'}</p>
-        `;
+        plotActions.innerHTML = '';
     } else {
-        plotActions.innerHTML = `<p class="text-muted mb-0">This area is not available for planting</p>`;
+        plotActions.innerHTML = '<p class="text-muted text-center mb-0">This area is not available for planting</p>';
     }
+    
+    // Show the modal with proper backdrop
+    const plotModal = document.getElementById('plotDetailsModal');
+    const modal = new bootstrap.Modal(plotModal, {
+        backdrop: true,
+        keyboard: true,
+        focus: true
+    });
+    modal.show();
+    
+    // Ensure the backdrop appears above the garden plots modal
+    setTimeout(() => {
+        const backdrop = document.querySelector('.modal-backdrop:last-of-type');
+        if (backdrop) {
+            backdrop.style.zIndex = '1055';
+        }
+    }, 10);
 }
 
 // Claim a plot
 function claimPlot(index) {
+    // Close the details modal first
+    const detailsModal = bootstrap.Modal.getInstance(document.getElementById('plotDetailsModal'));
+    if (detailsModal) {
+        detailsModal.hide();
+    }
+    
     fetch(`/api/gardens/${currentGardenData.garden_id}/plots/${index}/claim`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -528,6 +836,12 @@ function claimPlot(index) {
 // Release a plot
 function releasePlot(index) {
     if (!confirm('Are you sure you want to release this plot?')) return;
+    
+    // Close the details modal first
+    const detailsModal = bootstrap.Modal.getInstance(document.getElementById('plotDetailsModal'));
+    if (detailsModal) {
+        detailsModal.hide();
+    }
     
     fetch(`/api/gardens/${currentGardenData.garden_id}/plots/${index}/release`, {
         method: 'POST',
@@ -658,5 +972,112 @@ function submitGarden(formData, gardenName, plotStatesToSend, btn) {
         btn.innerHTML = originalText;
     });
 }
+
+// Join garden function
+function joinGarden(gardenId, gardenName) {
+    const message = prompt(`Enter a message to join "${gardenName}" (optional):`);
+    
+    // User cancelled
+    if (message === null) return;
+    
+    fetch(`/api/gardens/${gardenId}/join`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            user_id: 1, // Demo user
+            message: message
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            alert('Join request sent successfully! Check your profile to see pending requests.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to send join request');
+    });
+}
+
+// Check follow status for all gardens on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const gardenItems = document.querySelectorAll('.garden-item');
+    gardenItems.forEach(item => {
+        const followBtn = item.querySelector('.follow-btn');
+        if (followBtn) {
+            const gardenId = followBtn.id.split('-')[2];
+            updateFollowButtonState(gardenId);
+        }
+    });
+});
+
+// Update follow button state
+function updateFollowButtonState(gardenId) {
+    fetch(`/api/gardens/${gardenId}/is-following?user_id=1`)
+        .then(response => response.json())
+        .then(data => {
+            const btn = document.getElementById(`follow-btn-${gardenId}`);
+            if (data.is_following) {
+                btn.innerHTML = '<i class="fas fa-check"></i> Following';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-success');
+            } else {
+                btn.innerHTML = '<i class="fas fa-user-plus"></i> Follow';
+                btn.classList.remove('btn-outline-success');
+                btn.classList.add('btn-success');
+            }
+        })
+        .catch(error => console.error('Error checking follow status:', error));
+}
+
+// Toggle follow/unfollow garden
+function toggleFollowGarden(gardenId, gardenName) {
+    const btn = document.getElementById(`follow-btn-${gardenId}`);
+    const isFollowing = btn.classList.contains('btn-outline-success');
+    
+    if (isFollowing) {
+        // Unfollow
+        fetch(`/api/gardens/${gardenId}/unfollow`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ user_id: 1 })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+            } else {
+                updateFollowButtonState(gardenId);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to unfollow garden');
+        });
+    } else {
+        // Follow
+        fetch(`/api/gardens/${gardenId}/follow`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ user_id: 1 })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+            } else {
+                updateFollowButtonState(gardenId);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to follow garden');
+        });
+    }
+}
+
 </script>
 {% endblock %}

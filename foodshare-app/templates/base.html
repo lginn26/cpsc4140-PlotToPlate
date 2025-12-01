@@ -79,6 +79,23 @@
                 font-size: 0.9rem;
             }
         }
+        
+        /* Help Button Positioning */
+        .help-button-left {
+            position: absolute;
+            left: 15px;
+            color: var(--primary-green);
+            transition: color 0.3s ease;
+            z-index: 10;
+        }
+        
+        .help-button-left:hover {
+            color: var(--dark-green);
+        }
+        
+        .navbar-brand {
+            margin-left: 50px;
+        }
     </style>
 </head>
 <body>
@@ -87,7 +104,10 @@
     
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg sticky-top" aria-label="Main navigation">
-        <div class="container">
+        <div class="container-fluid px-3">
+            <a class="help-button-left" href="#" data-bs-toggle="modal" data-bs-target="#helpModal" aria-label="Help and information" title="Help">
+                <i class="fas fa-info-circle fa-lg"></i>
+            </a>
             <a class="navbar-brand" href="/">
                 <i class="fas fa-leaf" aria-hidden="true"></i> FoodShare
             </a>
@@ -100,10 +120,171 @@
                     <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
                     <li class="nav-item"><a class="nav-link" href="/garden">Gardens</a></li>
                     <li class="nav-item"><a class="nav-link" href="/profile">Profile</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/guest" title="Browse as guest (kiosk mode)"><i class="fas fa-user"></i> Guest</a></li>
                 </ul>
             </div>
         </div>
     </nav>
+
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: #28a745; color: white;">
+                    <h5 class="modal-title" id="helpModalLabel" style="color: white; font-weight: 600;">
+                        <i class="fas fa-info-circle"></i> FoodShare Help Center
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Navigation Tabs -->
+                    <ul class="nav nav-tabs mb-4" id="helpTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="plots-tab" data-bs-toggle="tab" data-bs-target="#plots" type="button" role="tab" aria-controls="plots" aria-selected="true">
+                                <i class="fas fa-th"></i> Garden Plots
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="streaks-tab" data-bs-toggle="tab" data-bs-target="#streaks" type="button" role="tab" aria-controls="streaks" aria-selected="false">
+                                <i class="fas fa-fire"></i> Streaks
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="gardens-tab" data-bs-toggle="tab" data-bs-target="#gardens" type="button" role="tab" aria-controls="gardens" aria-selected="false">
+                                <i class="fas fa-leaf"></i> Gardens
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="posts-tab" data-bs-toggle="tab" data-bs-target="#posts" type="button" role="tab" aria-controls="posts" aria-selected="false">
+                                <i class="fas fa-comments"></i> Posts
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="helpTabsContent">
+                        <!-- Garden Plots Tab -->
+                        <div class="tab-pane fade show active" id="plots" role="tabpanel" aria-labelledby="plots-tab">
+                            <h5 class="mb-3"><i class="fas fa-th text-success"></i> What is a Garden Plot?</h5>
+                            <p>A <strong>garden plot</strong> is a designated space within a community garden where you can grow your own plants, vegetables, or herbs.</p>
+                            
+                            <h6 class="mt-4 mb-2">Plot Types:</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-seedling text-success"></i> <strong>Available Plots</strong> - Regular growing spaces you can claim
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-tint text-primary"></i> <strong>Water Source</strong> - Designated water access points (tap, hose, irrigation)
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-tools text-warning"></i> <strong>Tool Hub</strong> - Storage area for shared gardening tools and equipment
+                                </li>
+                            </ul>
+                            
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-info-circle"></i> <strong>Tip:</strong> Click on any plot in the garden grid to view its details and claim it if available!
+                            </div>
+                        </div>
+
+                        <!-- Streaks Tab -->
+                        <div class="tab-pane fade" id="streaks" role="tabpanel" aria-labelledby="streaks-tab">
+                            <h5 class="mb-3"><i class="fas fa-fire text-danger"></i> Understanding Your Gardening Streak</h5>
+                            <p>Your <strong>gardening streak</strong> tracks consecutive days of activity in the FoodShare community.</p>
+                            
+                            <h6 class="mt-4 mb-2">How to Maintain Your Streak:</h6>
+                            <ul>
+                                <li>Post updates about your garden</li>
+                                <li>Claim or tend to your garden plots</li>
+                                <li>Share food with the community</li>
+                                <li>Reply to community posts</li>
+                                <li>Join or create gardens</li>
+                            </ul>
+                            
+                            <div class="alert alert-warning mt-3">
+                                <i class="fas fa-exclamation-triangle"></i> <strong>Note:</strong> Your streak resets if you don't have any activity for 24 hours!
+                            </div>
+                            
+                            <h6 class="mt-4 mb-2">Streak Milestones:</h6>
+                            <ul class="list-unstyled">
+                                <li>🌱 <strong>7 days</strong> - Seedling Gardener</li>
+                                <li>🌿 <strong>30 days</strong> - Growing Gardener</li>
+                                <li>🌻 <strong>90 days</strong> - Blooming Gardener</li>
+                                <li>🏆 <strong>365 days</strong> - Master Gardener</li>
+                            </ul>
+                        </div>
+
+                        <!-- Gardens Tab -->
+                        <div class="tab-pane fade" id="gardens" role="tabpanel" aria-labelledby="gardens-tab">
+                            <h5 class="mb-3"><i class="fas fa-leaf text-success"></i> Garden Features</h5>
+                            
+                            <h6 class="mt-3 mb-2">Creating a Garden:</h6>
+                            <ol>
+                                <li>Click the <strong>"New Garden"</strong> button</li>
+                                <li>Fill in garden details (name, description, location)</li>
+                                <li>Design your garden grid by selecting plot sizes</li>
+                                <li>Click on plots to cycle through types: <strong>Available</strong> (green) → <strong>Water Source</strong> (blue) → <strong>Tool Hub</strong> (orange) → <strong>Unavailable</strong> (gray)</li>
+                                <li>Submit to create your garden!</li>
+                            </ol>
+                            
+                            <h6 class="mt-4 mb-2">Following a Garden:</h6>
+                            <p>Stay updated on gardens you're interested in! Click the <strong>"Follow"</strong> button on any garden card to follow it. Your followed gardens will appear in your profile, and you can unfollow anytime by clicking the button again.</p>
+                            
+                            <h6 class="mt-4 mb-2">Garden Grid Colors:</h6>
+                            <ul>
+                                <li><span class="badge" style="background-color: #90EE90;">Green</span> - Available plots</li>
+                                <li><span class="badge" style="background-color: #87CEEB;">Blue</span> - Water source</li>
+                                <li><span class="badge" style="background-color: #FFA500;">Orange</span> - Tool hub</li>
+                                <li><span class="badge" style="background-color: #FFB6C1;">Pink</span> - Your claimed plots</li>
+                                <li><span class="badge" style="background-color: #FFD700;">Gold</span> - Plots claimed by others</li>
+                                <li><span class="badge" style="background-color: #D3D3D3;">Gray</span> - Unavailable areas</li>
+                            </ul>
+                            
+                            <div class="alert alert-success mt-3">
+                                <i class="fas fa-ruler-horizontal"></i> <strong>Scale:</strong> Each plot represents approximately 10ft × 10ft of growing space.
+                            </div>
+                        </div>
+
+                        <!-- Posts Tab -->
+                        <div class="tab-pane fade" id="posts" role="tabpanel" aria-labelledby="posts-tab">
+                            <h5 class="mb-3"><i class="fas fa-comments text-primary"></i> Community Posts</h5>
+                            
+                            <h6 class="mt-3 mb-2">Creating Posts:</h6>
+                            <p>Share your harvest, ask questions, or offer surplus food to the community!</p>
+                            <ul>
+                                <li>Click <strong>"New Post"</strong> in the Community section</li>
+                                <li>Add a title, description, and optional image</li>
+                                <li>Include food type, quantity, and location</li>
+                                <li>Submit to share with the community</li>
+                            </ul>
+                            
+                            <h6 class="mt-4 mb-2">Interacting with Posts:</h6>
+                            <ul>
+                                <li><i class="fas fa-heart text-danger"></i> <strong>Like</strong> posts to show appreciation</li>
+                                <li><i class="fas fa-reply text-primary"></i> <strong>Reply</strong> to start conversations</li>
+                                <li><i class="fas fa-check-circle text-success"></i> <strong>Mark as Resolved</strong> when your post is fulfilled (author only)</li>
+                                <li><i class="fas fa-trash text-danger"></i> <strong>Delete</strong> your own posts if needed</li>
+                            </ul>
+                            
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-lightbulb"></i> <strong>Best Practices:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>Be specific about food types and quantities</li>
+                                    <li>Include pickup location and timeframes</li>
+                                    <li>Respond to replies promptly</li>
+                                    <li>Mark posts as resolved when complete</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <main id="main-content" tabindex="-1">

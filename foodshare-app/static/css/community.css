@@ -15,6 +15,20 @@
     object-fit: cover;
 }
 
+/* Resolved Post Styles */
+.post-resolved {
+    opacity: 0.8;
+    background-color: #f8f9fa;
+}
+
+.post-resolved .card-body {
+    border-left: 4px solid #28a745;
+}
+
+.post-resolved .card-title {
+    color: #5a6268;
+}
+
 /* Reply Section Styles */
 .replies-section {
     background-color: #f8f9fa;
