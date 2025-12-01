@@ -358,12 +358,6 @@ def contributions():
     return render_template('contributions.html', user=user, contributions=contributions)
 
 
-@app.route('/garden')
-def garden():
-    gardens = Garden.query.all()
-    return render_template('garden.html', gardens=gardens)
-
-
 # ---------- API: USERS ----------
 
 @app.route('/api/users', methods=['GET', 'POST'])
