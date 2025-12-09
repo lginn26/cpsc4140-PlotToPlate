@@ -80,21 +80,14 @@
             }
         }
         
-        /* Help Button Positioning */
-        .help-button-left {
-            position: absolute;
-            left: 15px;
+        /* Help Button Styling */
+        .help-button {
             color: var(--primary-green);
             transition: color 0.3s ease;
-            z-index: 10;
         }
         
-        .help-button-left:hover {
+        .help-button:hover {
             color: var(--dark-green);
-        }
-        
-        .navbar-brand {
-            margin-left: 50px;
         }
     </style>
 </head>
@@ -105,9 +98,6 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg sticky-top" aria-label="Main navigation">
         <div class="container-fluid px-3">
-            <a class="help-button-left" href="#" data-bs-toggle="modal" data-bs-target="#helpModal" aria-label="Help and information" title="Help">
-                <i class="fas fa-info-circle fa-lg"></i>
-            </a>
             <a class="navbar-brand" href="/">
                 <i class="fas fa-leaf" aria-hidden="true"></i> FoodShare
             </a>
@@ -121,6 +111,11 @@
                     <li class="nav-item"><a class="nav-link" href="/garden">Gardens</a></li>
                     <li class="nav-item"><a class="nav-link" href="/profile">Profile</a></li>
                     <li class="nav-item"><a class="nav-link" href="/guest" title="Browse as guest (kiosk mode)"><i class="fas fa-user"></i> Guest</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link help-button" href="#" data-bs-toggle="modal" data-bs-target="#helpModal" aria-label="Help and information" title="Help">
+                            <i class="fas fa-info-circle"></i> Help
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -305,6 +300,7 @@
                         <li><a href="/community" class="text-light text-decoration-none">Community</a></li>
                         <li><a href="/garden" class="text-light text-decoration-none">Gardens</a></li>
                         <li><a href="/profile" class="text-light text-decoration-none">Profile</a></li>
+                        <li><a href="#" class="text-light text-decoration-none" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="fas fa-info-circle"></i> Help & Info</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4 mb-4">
