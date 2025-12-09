@@ -268,6 +268,51 @@ def guest_mode():
     return profile(guest_user.id)
 
 
+@app.route('/setup')
+def setup_app():
+    """Initialize the app with sample data if empty"""
+    try:
+        # Check if we have any users
+        user_count = User.query.count()
+        if user_count == 0:
+            # Create demo user
+            demo_user = User(
+                username='demo_user',
+                email='demo@foodshare.com',
+                bio='Welcome to FoodShare! This is a demo profile.',
+                location='Community Garden',
+                role='Garden Coordinator'
+            )
+            db.session.add(demo_user)
+            
+            # Create guest user
+            guest_user = User(
+                username='guest',
+                email='guest@foodshare.local',
+                bio='Browse as a guest - kiosk mode',
+                location='Community Garden',
+                role='Guest',
+                is_guest=True
+            )
+            db.session.add(guest_user)
+            
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'App setup complete!',
+                'users_created': 2,
+                'demo_user_id': demo_user.id,
+                'guest_user_id': guest_user.id
+            })
+        else:
+            return jsonify({
+                'message': 'App already has data',
+                'user_count': user_count
+            })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/garden')
 def garden():
     gardens = Garden.query.all()
@@ -278,8 +323,25 @@ def garden():
 
 @app.route('/profile')
 @app.route('/profile/<int:user_id>')
-def profile(user_id=1):
-    user = User.query.get_or_404(user_id)
+def profile(user_id=None):
+    # If no user_id provided, try to find the first user or create one
+    if user_id is None:
+        user = User.query.first()
+        if not user:
+            # Create a default user if none exist
+            user = User(
+                username='demo_user',
+                email='demo@foodshare.com',
+                bio='Demo user for FoodShare',
+                location='Community Garden',
+                role='Garden Volunteer'
+            )
+            db.session.add(user)
+            db.session.commit()
+        user_id = user.id
+    else:
+        user = User.query.get_or_404(user_id)
+    
     posts = Post.query.filter_by(user_id=user_id).order_by(Post.timestamp.desc()).all()
     gardens = Garden.query.filter_by(user_id=user_id).order_by(Garden.timestamp.desc()).all()
 
