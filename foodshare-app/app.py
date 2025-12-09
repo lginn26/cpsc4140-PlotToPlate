@@ -237,8 +237,34 @@ class GardenFollower(db.Model):
 
 @app.route('/')
 def index():
-    gardens = Garden.query.all()
-    return render_template('index.html', gardens=gardens)
+    try:
+        gardens = Garden.query.all()
+        return render_template('index.html', gardens=gardens)
+    except Exception as e:
+        # If there's a database error, initialize it
+        db.create_all()
+        return render_template('index.html', gardens=[])
+
+
+@app.route('/health')
+def health_check():
+    """Simple health check endpoint"""
+    try:
+        # Test database connection
+        db.create_all()
+        user_count = User.query.count()
+        return jsonify({
+            'status': 'healthy',
+            'database': 'connected',
+            'users': user_count,
+            'app': 'FoodShare',
+            'version': '1.0'
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
 
 
 @app.route('/community')
@@ -324,31 +350,53 @@ def garden():
 @app.route('/profile')
 @app.route('/profile/<int:user_id>')
 def profile(user_id=None):
-    # If no user_id provided, try to find the first user or create one
-    if user_id is None:
-        user = User.query.first()
-        if not user:
-            # Create a default user if none exist
-            user = User(
-                username='demo_user',
-                email='demo@foodshare.com',
-                bio='Demo user for FoodShare',
-                location='Community Garden',
-                role='Garden Volunteer'
-            )
-            db.session.add(user)
-            db.session.commit()
-        user_id = user.id
-    else:
-        user = User.query.get_or_404(user_id)
-    
-    posts = Post.query.filter_by(user_id=user_id).order_by(Post.timestamp.desc()).all()
-    gardens = Garden.query.filter_by(user_id=user_id).order_by(Garden.timestamp.desc()).all()
+    try:
+        # Ensure database tables exist
+        db.create_all()
+        
+        # If no user_id provided, try to find the first user or create one
+        if user_id is None:
+            user = User.query.first()
+            if not user:
+                # Create a default user if none exist
+                user = User(
+                    username='demo_user',
+                    email='demo@foodshare.com',
+                    bio='Demo user for FoodShare - exploring community gardening!',
+                    location='Community Garden',
+                    role='Garden Volunteer',
+                    plant_count=5,
+                    zone='Zone 3',
+                    friends=3,
+                    streak=1
+                )
+                db.session.add(user)
+                db.session.commit()
+            user_id = user.id
+        else:
+            user = User.query.get(user_id)
+            if not user:
+                # If specific user not found, redirect to default profile
+                return redirect('/profile')
+        
+        posts = Post.query.filter_by(user_id=user_id).order_by(Post.timestamp.desc()).all()
+        gardens = Garden.query.filter_by(user_id=user_id).order_by(Garden.timestamp.desc()).all()
 
-    # Calculate real stats
-    plant_count = user.get_plant_count()
-    following_count = user.get_following_count()
-    followers_count = user.get_followers_count()
+        # Calculate real stats with fallbacks
+        try:
+            plant_count = user.get_plant_count()
+        except:
+            plant_count = getattr(user, 'plant_count', 0)
+            
+        try:
+            following_count = user.get_following_count()
+        except:
+            following_count = 0
+            
+        try:
+            followers_count = user.get_followers_count()
+        except:
+            followers_count = getattr(user, 'friends', 0)
 
     favorite_plants = [f.name for f in FavoritePlant.query.filter_by(user_id=user_id).all()]
 
@@ -756,22 +804,27 @@ def release_plot(garden_id, plot_index):
 #        MAIN
 # =========================
 
-if __name__ == '__main__':
-    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
-        with app.app_context():
-            db.create_all()
-            if User.query.filter_by(username='demo').first() is None:
-                demo_user = User(
-                    username='demo',
-                    email='demo@foodshare.com',
-                    bio='Helping our community grow one plant at a time.',
-                    location='Clemson, SC',
-                    plant_count=45,
-                    zone='Zone 3',
-                    friends=18,
-                    streak=7
-                )
-                db.session.add(demo_user)
-                db.session.commit()
+# Initialize database on import
+try:
+    with app.app_context():
+        db.create_all()
+        # Create demo user if none exist
+        if User.query.count() == 0:
+            demo_user = User(
+                username='demo',
+                email='demo@foodshare.com',
+                bio='Welcome to FoodShare! This is a demo profile showing how our platform helps communities share food and manage gardens.',
+                location='Clemson, SC',
+                plant_count=12,
+                zone='Zone 3',
+                friends=8,
+                streak=5,
+                role='Garden Coordinator'
+            )
+            db.session.add(demo_user)
+            db.session.commit()
+except:
+    pass  # Handle any initialization errors gracefully
 
+if __name__ == '__main__':
     app.run(debug=False, port=5000)
