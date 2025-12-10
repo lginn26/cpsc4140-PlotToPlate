@@ -154,6 +154,12 @@
                 </span>
               </div>
 
+              <div class="garden-grid-info mt-1">
+                <small class="text-success">
+                  🧩 {{ garden.rows }}×{{ garden.cols }} grid
+                </small>
+              </div>
+
 
             </div>
           </div>
@@ -221,6 +227,9 @@
             </div>
 
             <div class="post-stats mt-1 small">
+              <span class="stat-item me-3">
+                ❤️ {{ post.likes }} likes
+              </span>
               <span class="stat-item">
                 💬 {{ post.replies|length }} replies
               </span>
