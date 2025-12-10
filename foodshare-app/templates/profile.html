@@ -29,25 +29,11 @@
 
         <div class="d-flex justify-content-center gap-4 flex-wrap mb-3">
           <span class="text-success">
-            <i class="bi bi-leaf"></i> {{ user.plant_count or 0 }} plants
-          </span>
-          <span class="text-success">
-            <i class="bi bi-geo-alt"></i> {{ user.zone or "Zone 3" }}
-          </span>
-          <span class="text-success">
-            <i class="bi bi-people"></i> {{ user.friends or 0 }} friends
+            <i class="bi bi-geo-alt"></i> {{ user.location or 'Community Gardener' }}
           </span>
         </div>
 
-        {% if user.streak and user.streak > 0 %}
-        <div class="mt-3 streak-box">
-          🔥 {{ user.streak }}-Day Gardening Streak!
-        </div>
-        {% else %}
-        <div class="mt-3 streak-box streak-box-soft">
-          🌤 Start a gardening streak by planting today!
-        </div>
-        {% endif %}
+
       </div>
     </div>
   </div>
@@ -168,11 +154,7 @@
                 </span>
               </div>
 
-              <div class="garden-grid-info mt-1">
-                <small class="text-success">
-                  🧩 {{ garden.rows }}×{{ garden.cols }} grid
-                </small>
-              </div>
+
             </div>
           </div>
           {% endfor %}
@@ -239,9 +221,6 @@
             </div>
 
             <div class="post-stats mt-1 small">
-              <span class="stat-item me-3">
-                ❤️ {{ post.likes }} likes
-              </span>
               <span class="stat-item">
                 💬 {{ post.replies|length }} replies
               </span>

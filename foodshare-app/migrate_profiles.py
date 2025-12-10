@@ -57,6 +57,46 @@ def migrate():
             else:
                 raise
         
+        print("📝 Adding plant_count column...")
+        try:
+            cursor.execute("ALTER TABLE user ADD COLUMN plant_count INTEGER DEFAULT 0")
+            print("✅ Added plant_count column")
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" in str(e):
+                print("ℹ️  plant_count column already exists")
+            else:
+                raise
+        
+        print("📝 Adding zone column...")
+        try:
+            cursor.execute("ALTER TABLE user ADD COLUMN zone TEXT DEFAULT 'Zone 3'")
+            print("✅ Added zone column")
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" in str(e):
+                print("ℹ️  zone column already exists")
+            else:
+                raise
+        
+        print("📝 Adding friends column...")
+        try:
+            cursor.execute("ALTER TABLE user ADD COLUMN friends INTEGER DEFAULT 0")
+            print("✅ Added friends column")
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" in str(e):
+                print("ℹ️  friends column already exists")
+            else:
+                raise
+        
+        print("📝 Adding streak column...")
+        try:
+            cursor.execute("ALTER TABLE user ADD COLUMN streak INTEGER DEFAULT 0")
+            print("✅ Added streak column")
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" in str(e):
+                print("ℹ️  streak column already exists")
+            else:
+                raise
+        
         # Create a guest user if it doesn't exist
         print("📝 Creating guest user for kiosk mode...")
         cursor.execute("SELECT id FROM user WHERE username = 'guest'")

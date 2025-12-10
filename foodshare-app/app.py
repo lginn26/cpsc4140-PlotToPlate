@@ -382,42 +382,28 @@ def profile(user_id=None):
         posts = Post.query.filter_by(user_id=user_id).order_by(Post.timestamp.desc()).all()
         gardens = Garden.query.filter_by(user_id=user_id).order_by(Garden.timestamp.desc()).all()
 
-        # Calculate real stats with fallbacks
-        try:
-            plant_count = user.get_plant_count()
-        except:
-            plant_count = getattr(user, 'plant_count', 0)
-            
-        try:
-            following_count = user.get_following_count()
-        except:
-            following_count = 0
-            
-        try:
-            followers_count = user.get_followers_count()
-        except:
-            followers_count = getattr(user, 'friends', 0)
+        # favorite_plants = [f.name for f in FavoritePlant.query.filter_by(user_id=user_id).all()]
+        favorite_plants = []  # Placeholder for future feature
 
-    favorite_plants = [f.name for f in FavoritePlant.query.filter_by(user_id=user_id).all()]
+        # Simple contributions list (computed)
+        contributions = [
+            f"Created {len(gardens)} garden(s) 🌱",
+            f"Shared {len(posts)} community post(s) 🧺",
+            "Growing the FoodShare community 🤝"
+        ]
 
-    # Simple contributions list (computed)
-    contributions = [
-        f"Created {len(gardens)} garden(s) 🌱",
-        f"Shared {len(posts)} community post(s) 🧺",
-        "Growing the FoodShare community 🤝"
-    ]
-
-    return render_template(
-        'profile.html',
-        user=user,
-        posts=posts,
-        gardens=gardens,
-        plant_count=plant_count,
-        following_count=following_count,
-        followers_count=followers_count,
-        favorite_plants=favorite_plants,
-        contributions=contributions
-    )
+        return render_template(
+            'profile.html',
+            user=user,
+            posts=posts,
+            gardens=gardens,
+            favorite_plants=favorite_plants,
+            contributions=contributions
+        )
+    except Exception as e:
+        print(f"Error in profile route: {e}")
+        # Return a basic error page or redirect
+        return f"Profile error: {e}", 500
 
 
 @app.route('/activity')
