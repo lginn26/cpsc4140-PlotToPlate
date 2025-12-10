@@ -812,5 +812,69 @@ try:
 except:
     pass  # Handle any initialization errors gracefully
 
+@app.route('/admin/seed-database')
+def seed_database():
+    """Admin endpoint to seed the database with sample data"""
+    try:
+        # Import and run the seed script
+        import subprocess
+        import os
+        
+        # Get the current directory
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        seed_script = os.path.join(current_dir, 'seed_data', 'seed_database.py')
+        
+        if os.path.exists(seed_script):
+            result = subprocess.run(['python', seed_script], 
+                                  capture_output=True, text=True, cwd=current_dir)
+            
+            if result.returncode == 0:
+                return f"""
+                <html>
+                <head><title>Database Seeded</title></head>
+                <body>
+                    <h1>✅ Database Seeded Successfully!</h1>
+                    <p>The database has been populated with sample data.</p>
+                    <pre>{result.stdout}</pre>
+                    <a href="/">← Back to Home</a>
+                </body>
+                </html>
+                """, 200
+            else:
+                return f"""
+                <html>
+                <head><title>Seed Error</title></head>
+                <body>
+                    <h1>❌ Seeding Failed</h1>
+                    <pre>Error: {result.stderr}</pre>
+                    <pre>Output: {result.stdout}</pre>
+                    <a href="/">← Back to Home</a>
+                </body>
+                </html>
+                """, 500
+        else:
+            return """
+            <html>
+            <head><title>Seed Script Not Found</title></head>
+            <body>
+                <h1>⚠️ Seed Script Not Found</h1>
+                <p>The seed database script could not be located.</p>
+                <a href="/">← Back to Home</a>
+            </body>
+            </html>
+            """, 404
+            
+    except Exception as e:
+        return f"""
+        <html>
+        <head><title>Seed Error</title></head>
+        <body>
+            <h1>❌ Seeding Failed</h1>
+            <p>Error: {str(e)}</p>
+            <a href="/">← Back to Home</a>
+        </body>
+        </html>
+        """, 500
+
 if __name__ == '__main__':
     app.run(debug=False, port=5000)
