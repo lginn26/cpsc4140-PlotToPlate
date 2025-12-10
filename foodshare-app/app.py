@@ -812,6 +812,15 @@ try:
 except:
     pass  # Handle any initialization errors gracefully
 
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    """Serve uploaded files"""
+    from flask import send_from_directory
+    import os
+    
+    uploads_path = os.path.join(app.root_path, 'static', 'uploads')
+    return send_from_directory(uploads_path, filename)
+
 @app.route('/admin/seed-database')
 def seed_database():
     """Admin endpoint to seed the database with sample data"""

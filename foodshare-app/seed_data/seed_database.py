@@ -245,7 +245,7 @@ def create_posts(users):
             'food_type': 'Heirloom Tomatoes',
             'quantity': '15-20 large tomatoes',
             'location': 'Victory Garden Collective - Plot 12',
-            'image_url': '/static/uploads/Tomato-header.png'
+            'image_url': 'Tomato-header.png'
         },
         {
             'title': '🌿 Fresh Herb Starter Kit Available',
@@ -253,7 +253,7 @@ def create_posts(users):
             'food_type': 'Herb Cuttings & Plants',
             'quantity': '5 starter pots per person',
             'location': 'Heritage Herb Haven - Main Shed',
-            'image_url': '/static/uploads/herb-header.jpg'
+            'image_url': 'herb-header.jpg'
         },
         {
             'title': '🥒 Cucumber & Pickling Cucumber Bonanza',
