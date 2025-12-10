@@ -2,11 +2,13 @@
 {% block title %}{{ user.username }}'s Profile | FoodShare{% endblock %}
 
 {% block content %}
-<div class="container py-5 profile-page">
+<div class="container-fluid py-5 profile-page">
+  <div class="row mx-auto" style="max-width: 1500px;">
+    <div class="col-12 px-4">
 
-  <!-- TOP PROFILE CARD -->
-  <div class="row justify-content-center mb-5">
-    <div class="col-lg-6 col-md-8 text-center">
+      <!-- TOP PROFILE CARD -->
+      <div class="row justify-content-center mb-5">
+        <div class="col-lg-6 col-md-8 text-center">
       <div class="profile-card p-4">
 
         <!-- Avatar with leafy ring -->
@@ -250,10 +252,12 @@
         {% endif %}
       </div>
     </div>
-  </div>
 
-  <footer class="mt-5 text-center text-muted">
-    🌿 FoodShare © 2025 — Growing Together 🌻
-  </footer>
-</div>
+    <footer class="mt-5 text-center text-muted">
+      🌿 FoodShare © 2025 — Growing Together 🌻
+    </footer>
+
+    </div> <!-- Close col-12 px-4 -->
+  </div> <!-- Close row mx-auto -->
+</div> <!-- Close container-fluid -->
 {% endblock %}

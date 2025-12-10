@@ -18,6 +18,63 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: var(--text-dark);
     background-color: var(--light-bg);
+    overflow-x: hidden;
+}
+
+/* Container adjustments for better screen utilization */
+.container {
+    max-width: 1400px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.container-fluid {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1200px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .container {
+        max-width: 1320px;
+    }
+}
+
+@media (min-width: 1600px) {
+    .container {
+        max-width: 1500px;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .container-fluid .row.mx-auto {
+        max-width: 100% !important;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container-fluid .row.mx-auto {
+        margin-left: 0;
+        margin-right: 0;
+    }
+    
+    .col-12.px-4 {
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+    }
+    
+    .hero-section .col-lg-6.px-4 {
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+    }
 }
 
 /* Navbar Styles */
@@ -25,6 +82,14 @@ body {
     background-color: var(--white);
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     padding: 1rem 0;
+    width: 100%;
+}
+
+.navbar .container-fluid {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding-left: 20px;
+    padding-right: 20px;
 }
 
 .navbar-brand {
